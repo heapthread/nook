@@ -1,0 +1,6 @@
+{"results":[
+{"id":2946447,"name":"Bonn","latitude":50.73438,"longitude":7.09549,"feature_code":"PPLA3","country_code":"DE","timezone":"Europe/Berlin","population":330579,"country":"Germany","admin1":"North Rhine-Westphalia"},
+{"id":2174000,"name":"Bonn","latitude":-37.7,"longitude":144.9,"feature_code":"PPL","country_code":"AU","timezone":"Australia/Melbourne","population":29,"country":"Australia"},
+{"id":2950000,"name":"Bonn Cologne Airport","latitude":50.87,"longitude":7.14,"feature_code":"AIRP","country_code":"DE","timezone":"Europe/Berlin","country":"Germany"},
+{"id":4000001,"name":"Bonnie","latitude":38.2,"longitude":-88.9,"feature_code":"PPL","country_code":"US","timezone":"America/Chicago","population":500,"country":"United States"}
+]}

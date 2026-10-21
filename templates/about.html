@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}about - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>about</span></p>
+<div class="about">
+  <p>nook is a small search page that asks other search engines for you and shows one list. it has no index of its own, no accounts, and no ads.</p>
+
+  <h2>where results come from</h2>
+  <p>web: {{ engines | join(", ") }}.<br>
+  images: bing. videos: duckduckgo.<br>
+  news: {{ outlets }} outlets, grouped by wing in a file you can edit.</p>
+
+  <h2>what it knows about you</h2>
+  <p>nothing is written down. searches are not logged, and a search is only remembered in memory for a few minutes so a refresh is quick. pictures come through nook, so your browser doesn't visit the sites they came from, and a video doesn't touch youtube until you press play.</p>
+  <p>things you choose to keep, like the news wing you picked or the bookmarks on the home page, are saved in your own browser and nowhere else.</p>
+
+  <h2>good to know</h2>
+  <p>results are borrowed, so an engine can be slow or turn nook away for a while. when that happens nook says which one didn't answer. which wing a news outlet sits in is a rough reading of public ratings and is only an opinion.</p>
+</div>
+{% endblock %}

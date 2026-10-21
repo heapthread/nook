@@ -1,0 +1,21 @@
+# Engines to ask, in any order. Available: duckduckgo, bing, yahoo, seznam, wikipedia
+# Every engine is on by default and visitors can switch them off with the "engines" button.
+# seznam is Czech with an index of its own (its Czech and Slovak sites are left out).
+# wikipedia only answers requests that carry a contact address (set `contact` below).
+engines = ["duckduckgo", "bing", "yahoo", "seznam", "wikipedia"]
+
+host = "127.0.0.1"   # use "0.0.0.0" to let others on your network reach it
+port = 8080
+timeout = 4.0              # seconds to wait for each engine
+cache_seconds = 300        # remember a query this long
+rate_limit_per_minute = 30 # per visitor; protects a shared server's IP
+contact = ""               # your email or site; sent only to Wikipedia, whose API rules require it
+picture_limit_per_minute = 600  # pictures are many small requests, so this is generous
+secret = ""                # any long random string; keeps picture links valid across restarts
+per_site = 2               # at most this many results from one site per page (0 turns it off)
+news_refresh_minutes = 8   # refresh the news feeds in the background (0 turns it off)
+
+# Your own bangs: typing "!name something" jumps to that address, {} is replaced by what you typed.
+# nook already knows !w !yt !gh !hn !so !r !mdn !pypi !npm !maps !a !imdb !g !ddg !bing
+# [bangs]
+# arch = "https://wiki.archlinux.org/index.php?search={}"

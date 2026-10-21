@@ -1,0 +1,141 @@
+# News outlets, grouped by political wing.
+#
+# The grouping is my rough reading of public media-bias ratings (AllSides, Media Bias/Fact
+# Check). It is an opinion, not a fact, and people disagree about plenty of these. Move an
+# outlet to another wing, or add and remove feeds, by editing this file. Restart to apply.
+# wing is one of: far-left, left, centre, right, far-right
+
+# far left
+[[feed]]
+name = "Jacobin"
+url = "https://jacobin.com/feed"
+wing = "far-left"
+
+[[feed]]
+name = "Common Dreams"
+url = "https://www.commondreams.org/feeds/feed.rss"
+wing = "far-left"
+
+[[feed]]
+name = "Democracy Now"
+url = "https://www.democracynow.org/democracynow.rss"
+wing = "far-left"
+
+[[feed]]
+name = "Truthout"
+url = "https://truthout.org/feed/"
+wing = "far-left"
+
+[[feed]]
+name = "Mother Jones"
+url = "https://www.motherjones.com/feed/"
+wing = "far-left"
+
+# left
+[[feed]]
+name = "The Guardian"
+url = "https://www.theguardian.com/world/rss"
+wing = "left"
+
+[[feed]]
+name = "NPR"
+url = "https://feeds.npr.org/1001/rss.xml"
+wing = "left"
+
+[[feed]]
+name = "Vox"
+url = "https://www.vox.com/rss/index.xml"
+wing = "left"
+
+[[feed]]
+name = "The New York Times"
+url = "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+wing = "left"
+
+[[feed]]
+name = "CNN"
+url = "http://rss.cnn.com/rss/edition.rss"
+wing = "left"
+
+# centre
+[[feed]]
+name = "BBC News"
+url = "https://feeds.bbci.co.uk/news/rss.xml"
+wing = "centre"
+
+[[feed]]
+name = "The Hill"
+url = "https://thehill.com/feed/"
+wing = "centre"
+
+[[feed]]
+name = "Christian Science Monitor"
+url = "https://rss.csmonitor.com/feeds/all"
+wing = "centre"
+
+[[feed]]
+name = "Al Jazeera"
+url = "https://www.aljazeera.com/xml/rss/all.xml"
+wing = "centre"
+
+[[feed]]
+name = "Deutsche Welle"
+url = "https://rss.dw.com/rdf/rss-en-all"
+wing = "centre"
+
+# right
+[[feed]]
+name = "Fox News"
+url = "https://moxie.foxnews.com/google-publisher/latest.xml"
+wing = "right"
+
+[[feed]]
+name = "New York Post"
+url = "https://nypost.com/feed/"
+wing = "right"
+
+[[feed]]
+name = "Washington Examiner"
+url = "https://www.washingtonexaminer.com/feed"
+wing = "right"
+
+[[feed]]
+name = "National Review"
+url = "https://www.nationalreview.com/feed/"
+wing = "right"
+
+[[feed]]
+name = "The Washington Times"
+url = "https://www.washingtontimes.com/rss/headlines/news/"
+wing = "right"
+
+[[feed]]
+name = "Reason"
+url = "https://reason.com/feed/"
+wing = "right"
+
+# far right
+[[feed]]
+name = "Breitbart"
+url = "https://feeds.feedburner.com/breitbart"
+wing = "far-right"
+
+[[feed]]
+name = "The Daily Wire"
+url = "https://www.dailywire.com/feeds/rss.xml"
+wing = "far-right"
+
+[[feed]]
+name = "The Federalist"
+url = "https://thefederalist.com/feed/"
+wing = "far-right"
+
+[[feed]]
+name = "Daily Caller"
+url = "https://dailycaller.com/feed/"
+wing = "far-right"
+
+[[feed]]
+name = "The Blaze"
+url = "https://www.theblaze.com/feeds/feed.rss"
+wing = "far-right"

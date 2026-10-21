@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="home">
+  <button class="pencil" type="button" aria-label="customise this page" title="customise">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+  </button>
+
+  <h1>nook</h1>
+  <div class="sub"><a href="/news">news</a> {% include "_engines.html" %}</div>
+  <form action="/search" method="get">
+    <input type="search" name="q" autofocus autocomplete="off" aria-label="search">
+  </form>
+
+  <div class="recent" hidden><p class="label">recent</p><p class="items"></p></div>
+  <div class="saved" hidden><p class="label">saved</p><ul class="items"></ul></div>
+
+  <div class="notes" hidden><textarea rows="5" spellcheck="false" placeholder="a few notes" aria-label="notes"></textarea></div>
+
+  <div class="personal" hidden>
+    <p class="greeting"></p>
+    <p class="date"></p>
+    <ul class="marks"></ul>
+  </div>
+
+  <form class="editor" hidden>
+    <label class="check"><input type="checkbox" name="on"> show a greeting, the date and my bookmarks</label>
+    <label class="check"><input type="checkbox" name="recent"> remember my recent searches</label>
+    <label class="check"><input type="checkbox" name="showSaved"> show the things I saved</label>
+    <label class="check"><input type="checkbox" name="notes"> show a notes box</label>
+    <label>your name <span class="soft">(optional)</span><input type="text" name="name" autocomplete="off"></label>
+    <label>bookmarks <span class="soft">(one per line: a name, then the address)</span>
+      <textarea name="marks" rows="5" spellcheck="false" placeholder="mail https://mail.example.com&#10;notes https://notes.example.com"></textarea>
+    </label>
+    <p class="actions"><button type="submit">save</button> <button type="button" data-act="clear">clear everything</button> <button type="button" data-act="clear-lists">forget recent and saved</button> <span class="soft">kept only in this browser</span></p>
+    <p class="actions"><button type="button" data-act="backup">back up</button> <button type="button" data-act="restore">restore</button> <span class="status soft">a backup is one small file with your saved items, notes, bookmarks, engines and site lists</span><input type="file" accept="application/json,.json" hidden></p>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='home.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ q }} - nook{% endblock %}
+{% block wide %}{% if tab == "images" %}wide{% endif %}{% endblock %}
+{% block body %}
+<form class="bar" action="/search" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" aria-label="search">
+  {% if tab != "web" %}<input type="hidden" name="t" value="{{ tab }}">{% endif %}
+</form>
+<nav class="tabs">
+  {% for key in ("web", "images", "videos") %}
+    {% if key == tab %}<span>{{ key }}</span>{% else %}<a href="/search?q={{ q | urlencode }}{% if key != 'web' %}&amp;t={{ key }}{% endif %}">{{ key }}</a>{% endif %}
+  {% endfor %}
+  {% if tab == "web" %}{% include "_engines.html" %}{% endif %}
+</nav>
+
+{% if limit_note %}<p class="note">{{ limit_note }}</p>{% endif %}
+{% include "_card.html" %}
+{% if hidden_count %}<p class="note">{{ hidden_count }} result{{ "" if hidden_count == 1 else "s" }} hidden by your site list.</p>{% endif %}
+{% if instant and not card %}<p class="answer">{{ instant }}</p>{% endif %}
+{% if stale %}<p class="note stale">nobody is answering right now, so these are from {{ stale }} minute{{ "" if stale == 1 else "s" }} ago.</p>{% endif %}
+
+{% if tab == "images" %}
+<div class="grid">
+  {% for r in results %}
+  <a href="{{ px(r.full) }}" data-page="{{ r.page }}" data-title="{{ r.title }}" rel="noreferrer">
+    <img src="{{ px(r.thumb) }}" alt="{{ r.title }}" loading="lazy">
+  </a>
+  {% endfor %}
+</div>
+{% elif tab == "videos" %}
+{% for r in results %}
+<a class="clip" href="/watch?v={{ r.url | urlencode }}&amp;title={{ r.title | urlencode }}&amp;q={{ q | urlencode }}">
+  <span class="thumb">
+    <img src="{{ px(r.thumb) }}" alt="" loading="lazy">
+    {% if r.duration %}<span class="dur">{{ r.duration }}</span>{% endif %}
+  </span>
+  <span class="text">
+    <span class="title">{{ r.title }}</span>
+    <span class="via">{{ r.meta }}</span>
+  </span>
+</a>
+{% endfor %}
+{% else %}
+{% for r in results %}
+<article>
+  <h2><a href="{{ r.url }}" rel="noreferrer">{{ r.title }}</a></h2>
+  <div class="url">{% if icons %}<img class="ico" src="{{ px('https://icons.duckduckgo.com/ip3/' ~ (r.url | host) ~ '.ico') }}" alt="" width="16" height="16" loading="lazy">{% endif %}{{ r.url }}</div>
+  {% if r.snippet %}<p>{{ r.snippet | mark(q) }}</p>{% endif %}
+  <div class="via">{{ r.engines | join(" · ") }}{% if r.date %} &middot; {{ r.date }}{% endif %} &middot; <a href="{{ rd(r.url, 'centre', q, r.title) }}">read</a></div>
+</article>
+{% endfor %}
+{% endif %}
+
+{% if not results %}
+  {% if failed and failed | length == asked | length %}
+  <p class="empty">nobody answered just now. the engines may be busy, so give it a minute and <a href="{{ request.full_path }}">try again</a>.</p>
+  {% elif page > 1 and failed %}
+  <p class="empty">nothing more for now. give it a minute and <a href="{{ request.full_path }}">try again</a>.</p>
+  {% elif page > 1 %}
+  <p class="empty">that's everything i could find for this one.</p>
+  {% else %}
+  <p class="empty">nothing found for &ldquo;{{ q }}&rdquo;. try fewer words, or look under <a href="/search?q={{ q | urlencode }}&amp;t={{ 'images' if tab != 'images' else 'web' }}">{{ 'images' if tab != 'images' else 'web' }}</a>.</p>
+  {% endif %}
+{% endif %}
+
+{% if similar %}
+<p class="related"><span>related</span> {% for s in similar %}<a href="/search?q={{ s | urlencode }}">{{ s }}</a>{{ " " }}{% endfor %}</p>
+{% endif %}
+
+{% if page > 1 or more %}
+<p class="pager">
+  {% if page > 1 %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}{% if page > 2 %}&amp;page={{ page - 1 }}{% endif %}">back</a>{% endif %}
+  {% if more %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}&amp;page={{ page + 1 }}">more</a>{% endif %}
+</p>
+{% endif %}
+
+{% if answered or failed %}
+<p class="note">{% if answered %}answered by {{ answered | join(", ") }}.{% endif %}{% if failed %} {{ failed | join(", ") }} didn't answer.{% endif %}</p>
+{% endif %}
+
+{% if tab == "images" and results %}
+<div class="lightbox" hidden>
+  <img alt="">
+  <p class="cap"></p>
+  <p class="actions"><button data-act="prev">back</button> <a data-act="page" rel="noreferrer">source page</a> <a data-act="full">full image</a> <button data-act="next">next</button> <button data-act="close">close</button></p>
+</div>
+<script src="{{ url_for('static', filename='images.js') }}"></script>
+{% endif %}
+{% endblock %}

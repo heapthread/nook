@@ -1,0 +1,28 @@
+<details class="engines">
+  <summary>engines</summary>
+  <form action="/engines" method="post">
+    <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+    {% for name, on in engine_choices %}
+    <label><input type="checkbox" name="engine" value="{{ name }}"{% if on %} checked{% endif %}> {{ name }}</label>
+    {% endfor %}
+    <label class="period">region <select name="region" aria-label="region">
+      <option value="">automatic</option>
+      {% for code, label in regions %}<option value="{{ code }}"{% if code == region_now %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <label class="period">safe search <select name="safe" aria-label="safe search">
+      <option value="">moderate</option>
+      <option value="strict"{% if safe_now == "strict" %} selected{% endif %}>strict</option>
+      <option value="off"{% if safe_now == "off" %} selected{% endif %}>off</option>
+    </select></label>
+    <label class="period">time <select name="period" aria-label="how recent">
+      <option value="">any time</option>
+      {% for key, label in periods.items() %}<option value="{{ key }}"{% if key == period_now %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <label class="sites">hide these sites <span class="soft">(one per line)</span>
+      <textarea name="hide" rows="3" spellcheck="false" placeholder="pinterest.com">{{ hide_now }}</textarea></label>
+    <label class="sites">show these first
+      <textarea name="prefer" rows="2" spellcheck="false" placeholder="wikipedia.org">{{ prefer_now }}</textarea></label>
+    {% if engines_skipped %}<p class="soft">{{ engines_skipped | join(", ") }} stays off until a contact is set in config.toml.</p>{% endif %}
+    <p class="actions"><button type="submit">save</button> <span class="soft">remembered in this browser</span></p>
+  </form>
+</details>

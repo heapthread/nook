@@ -1,0 +1,7 @@
+flask
+httpx[http2]
+selectolax
+waitress
+pytest
+trafilatura
+tzdata

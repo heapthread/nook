@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}nook{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='media.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
+<link rel="search" type="application/opensearchdescription+xml" title="nook" href="/opensearch.xml">
+</head>
+<body>
+<main class="{% block wide %}{% endblock %}">
+{% block body %}{% endblock %}
+</main>
+<footer>
+  <a href="/about">about</a> &middot; <a href="/news">news</a> &middot; nothing is logged &middot; <span class="soft">press ? for shortcuts</span>
+</footer>
+<script src="{{ url_for('static', filename='nook.js') }}"></script>
+</body>
+</html>

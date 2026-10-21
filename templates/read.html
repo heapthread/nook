@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ story.title }} - nook{% endblock %}
+{% block body %}
+{% if q %}
+<p class="bar news-bar"><a href="/">nook</a> <a href="/search?q={{ q | urlencode }}">back to {{ q }}</a></p>
+{% else %}
+<p class="bar news-bar"><a href="/">nook</a> <a href="/news?w={{ wing }}">news</a> <span>{{ wing | replace("-", " ") }}</span></p>
+{% endif %}
+
+<article class="reader">
+  <h1>{{ story.title }}</h1>
+  <div class="via">{{ story.source }}{% if story.when %} &middot; {{ story.when | ago }}{% endif %}</div>
+  <p class="actions"><a class="btn" href="{{ story.url }}" rel="noreferrer">read at {{ story.source }}</a></p>
+  {% if how != "partial" %}
+  <p class="tools">{{ minutes }} min read &middot; text <button type="button" data-act="smaller" aria-label="smaller text">smaller</button> <button type="button" data-act="bigger" aria-label="bigger text">bigger</button> &middot; <button type="button" data-act="wide">wider</button> &middot; <button type="button" data-act="listen" hidden>listen</button></p>
+  {% endif %}
+
+  {% if pics and story.image %}<img class="lead" src="{{ px(story.image) }}" alt="">{% endif %}
+
+  {% if how == "partial" %}
+    {% if story.summary %}<p>{{ story.summary }}</p>{% endif %}
+    <p class="note">nook couldn't get the full article from {{ host }}. it may be behind a paywall, or it may block readers like this one. the button above takes you to it.</p>
+  {% else %}
+    {% for p in paras %}<p>{{ p }}</p>{% endfor %}
+    {% if how == "feed" %}<p class="note">this is the text {{ story.source }} put in its feed, so it may be shortened.</p>{% endif %}
+    <p class="actions"><a class="btn" href="{{ story.url }}" rel="noreferrer">read at {{ story.source }}</a></p>
+  {% endif %}
+</article>
+{% if how != "partial" %}<script src="{{ url_for('static', filename='reader.js') }}"></script>{% endif %}
+{% endblock %}

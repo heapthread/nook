@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nook — a quiet place to search</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #211c17; overflow: hidden;
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; color: #3b2f25; }
+  #viewport { position: fixed; inset: 0; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden;
+    transform-origin: 0 0; background: #e8dcc6; }
+  #stage * { box-sizing: border-box; }
+
+  /* ---------- the desk ---------- */
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #desk { position: absolute; inset: 0; background: linear-gradient(180deg, #ecdfca 0%, #e3d4b9 50%, #d7c5a5 100%); }
+  #desk::after { content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(120,90,50,.035) 0 2px, rgba(0,0,0,0) 2px 9px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 38px); }
+  #sun { position: absolute; inset: 0; opacity: 0;
+    background: radial-gradient(ellipse 1000px 760px at 10% -4%, rgba(255,247,228,.95), rgba(255,247,228,0) 70%),
+      linear-gradient(112deg, rgba(255,250,236,0) 16%, rgba(255,250,236,.30) 24%, rgba(255,250,236,0) 32%,
+      rgba(255,250,236,.22) 42%, rgba(255,250,236,0) 50%); }
+  .mote { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,252,242,.75); }
+
+  #mugShadow { position: absolute; left: 118px; top: 890px; width: 250px; height: 40px; border-radius: 50%;
+    background: rgba(70,45,20,.22); filter: blur(12px); }
+  #mugBody { position: absolute; left: 150px; top: 720px; width: 176px; height: 190px; background: #f4ecdd;
+    border: 4px solid #d9cfbf; border-radius: 12px 12px 46px 46px; }
+  #mugHandle { position: absolute; left: 312px; top: 764px; width: 62px; height: 92px; border: 15px solid #f4ecdd;
+    border-left-color: transparent; border-radius: 0 50px 50px 0; box-shadow: 0 0 0 0 #d9cfbf; }
+  #mugTop { position: absolute; left: 150px; top: 702px; width: 176px; height: 38px; border-radius: 50%;
+    background: #5b4332; border: 4px solid #d9cfbf; }
+  #steam { position: absolute; left: 190px; top: 560px; width: 110px; height: 150px; }
+
+  #notebook { position: absolute; left: 1560px; top: 705px; width: 310px; height: 225px; background: #efe6d6;
+    border: 3px solid #d9cfbf; border-radius: 6px; transform: rotate(-7deg);
+    background-image: repeating-linear-gradient(0deg, rgba(138,75,42,.10) 0 1px, rgba(0,0,0,0) 1px 26px); }
+  #notebook::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 24px; background: #8a4b2a; }
+  #pencilObj { position: absolute; left: 1470px; top: 950px; width: 340px; height: 17px; transform: rotate(-17deg);
+    background: linear-gradient(#e8b24e, #d79a2c); border-radius: 3px 0 0 3px; }
+  #pencilObj::after { content: ""; position: absolute; right: -26px; top: 0; border-left: 26px solid #e9d3ad;
+    border-top: 8.5px solid transparent; border-bottom: 8.5px solid transparent; }
+  #pencilObj::before { content: ""; position: absolute; left: 0; top: 0; width: 34px; height: 17px; background: #b8503a;
+    border-radius: 3px 0 0 3px; }
+
+  /* ---------- the laptop ---------- */
+  #rig { position: absolute; inset: 0; perspective: 1700px; }
+  #shadow { position: absolute; left: 350px; top: 928px; width: 1220px; height: 46px; border-radius: 50%;
+    background: rgba(60,40,20,.30); filter: blur(16px); }
+  #base { position: absolute; left: 330px; top: 910px; width: 1260px; height: 30px; border-radius: 0 0 34px 34px;
+    background: linear-gradient(#d9cfbf, #bfb29f); }
+  #base::after { content: ""; position: absolute; left: 50%; top: 0; width: 190px; height: 9px; margin-left: -95px;
+    border-radius: 0 0 14px 14px; background: #a99d8a; }
+  #lid { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 960px 912px; }
+  #bezel { position: absolute; left: 386px; top: 236px; width: 1148px; height: 677px; border-radius: 22px 22px 6px 6px;
+    background: #2b2521; }
+  #screenWrap { position: absolute; left: 410px; top: 260px; width: 1100px; height: 619px; overflow: hidden;
+    background: #f4efe6; }
+  #screen { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; transform: scale(.6875);
+    transform-origin: 0 0; background: #f4efe6; }
+  #screenOff { position: absolute; inset: 0; background: #1b1714; }
+
+  /* ---------- the interface, drawn at 1600 x 900 ---------- */
+  .page { position: absolute; inset: 0; background: #f4efe6; font-size: 24px; line-height: 1.55; visibility: hidden; }
+  .a { position: absolute; }
+  .soft { color: #8a7b6b; }
+  .lnk { color: #8a4b2a; }
+  .center { left: 0; right: 0; text-align: center; }
+  b { font-weight: bold; }
+  .caret { display: inline-block; width: 2px; height: 1.05em; background: #8a4b2a; vertical-align: -.16em; margin-left: 2px; }
+
+  #hTitle { top: 205px; font-size: 84px; font-weight: normal; margin: 0; line-height: 1.1; }
+  #hSub { top: 318px; font-size: 24px; }
+  #hSub span { margin: 0 22px; color: #8a4b2a; }
+  #hBox { left: 520px; top: 392px; width: 560px; height: 58px; border-bottom: 2px solid #d9cfbf; text-align: center; font-size: 32px; }
+  #hFoot { top: 842px; font-size: 17px; color: #8a7b6b; }
+  #pencilBtn { left: 1520px; top: 30px; width: 46px; height: 46px; border-radius: 50%; color: #8a7b6b; display: flex;
+    align-items: center; justify-content: center; }
+  #pencilRing { position: absolute; left: 1508px; top: 18px; width: 70px; height: 70px; border-radius: 50%;
+    border: 2px solid #8a4b2a; opacity: 0; }
+  #hGreet { top: 478px; font-size: 32px; }
+  #hDate { top: 520px; font-size: 20px; color: #8a7b6b; }
+  #hMarks { top: 568px; font-size: 22px; color: #8a4b2a; }
+  #hMarks span { margin: 0 22px; }
+  #hRecent { top: 640px; font-size: 21px; }
+  #hSaved { top: 716px; font-size: 21px; }
+  .lab { font-size: 16px; color: #8a7b6b; display: block; }
+  #hNotes { left: 520px; top: 790px; width: 560px; height: 78px; border: 1px solid #d9cfbf; border-radius: 5px;
+    padding: 8px 14px; font-size: 20px; line-height: 1.4; }
+
+  .panel { background: #f4efe6; border: 1px solid #d9cfbf; border-radius: 6px; padding: 22px 28px; font-size: 22px; line-height: 1.5; }
+  .panel .cbrow { display: flex; align-items: center; gap: 12px; margin: 5px 0; }
+  .cb { display: inline-block; width: 22px; height: 22px; border: 2px solid #8a4b2a; border-radius: 4px; position: relative; flex: none; }
+  .cb::after { content: ""; position: absolute; left: 6px; top: 1px; width: 6px; height: 12px; border: solid #f4efe6;
+    border-width: 0 3px 3px 0; transform: rotate(45deg); opacity: 0; }
+  .cb.on { background: #8a4b2a; }
+  .cb.on::after { opacity: 1; }
+  .sel { display: inline-block; border: 1px solid #d9cfbf; border-radius: 3px; padding: 0 12px; margin-left: 10px; font-size: 20px; min-width: 140px; }
+  .btn { display: inline-block; color: #8a4b2a; font-size: 21px; margin-right: 22px; padding: 1px 4px; border-radius: 3px; }
+  .btn.press { background: #8a4b2a; color: #f4efe6; }
+  .small { font-size: 16px; }
+
+  .bar { left: 390px; top: 40px; width: 820px; height: 60px; }
+  .bar .brand { position: absolute; left: 0; top: 0; color: #8a7b6b; font-size: 26px; }
+  .bar .q { position: absolute; left: 92px; top: -2px; font-size: 30px; white-space: nowrap; }
+  .bar .line { position: absolute; left: 78px; right: 0; top: 52px; height: 2px; background: #d9cfbf; }
+  .tabs { left: 390px; top: 124px; width: 820px; display: flex; gap: 30px; font-size: 22px; color: #8a7b6b; }
+  .tabs .on { color: #3b2f25; border-bottom: 2px solid #8a4b2a; }
+  .tabs .eng { margin-left: auto; }
+  .tabs .eng.hot { color: #8a4b2a; }
+
+  .res { left: 390px; width: 820px; height: 122px; }
+  .res .t { color: #8a4b2a; font-size: 27px; line-height: 1.3; }
+  .res .u { color: #8a7b6b; font-size: 18px; line-height: 1.4; }
+  .ico { display: inline-block; width: 16px; height: 16px; border-radius: 50%; margin-right: 9px; vertical-align: -2px; }
+  .res p { margin: 2px 0 0; font-size: 22px; line-height: 1.38; max-height: 62px; overflow: hidden; }
+  .res .via { color: #8a7b6b; font-size: 17px; margin-top: 2px; }
+
+  .cardbox { left: 390px; top: 176px; width: 820px; padding: 0 0 8px 24px; border-left: 3px solid #d9cfbf; }
+  .cardbox h2 { margin: 0; font-size: 44px; font-weight: normal; line-height: 1.2; }
+  .cardbox p { margin: 6px 0; }
+  .src { color: #8a7b6b; font-size: 18px; }
+  .word { display: flex; align-items: center; gap: 16px; }
+  .say { color: #8a4b2a; width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+  .say.hot { background: #e6dccd; }
+  .phon { color: #8a7b6b; font-size: 21px; }
+  .pos { color: #8a7b6b; font-style: italic; margin-top: 16px !important; }
+  .senses { margin: 0; padding-left: 30px; }
+  .eg { display: block; color: #8a7b6b; font-size: 21px; }
+  .sim, .orig { font-size: 21px; margin-top: 18px !important; }
+  .sim span, .orig span { color: #8a7b6b; margin-right: 14px; }
+  .sim a { margin-right: 22px; color: #8a4b2a; }
+  .zrow { display: flex; align-items: baseline; gap: 26px; }
+  .zrow .t { min-width: 170px; font-variant-numeric: tabular-nums; }
+  .zrow.from .t { font-size: 34px; color: #8a7b6b; }
+  .zrow.to .t { font-size: 72px; line-height: 1.2; }
+  .zrow .p { display: flex; flex-direction: column; font-size: 30px; }
+  .zrow .z { color: #8a7b6b; font-size: 19px; }
+  .now { display: flex; align-items: baseline; gap: 26px; }
+  .now .deg { font-size: 72px; line-height: 1.1; }
+  .now .what { display: flex; flex-direction: column; font-size: 30px; }
+  .now .z { color: #8a7b6b; font-size: 19px; }
+  .days { list-style: none; margin: 14px 0 6px; padding: 0; font-size: 21px; }
+  .days li { display: flex; gap: 24px; padding: 3px 0; }
+  .days .d { width: 150px; color: #8a7b6b; }
+  .days .tx { flex: 1; }
+  .answer { font-size: 54px; margin: 8px 0 !important; line-height: 1.2; }
+  .big { font-size: 96px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .cvals p { margin: 4px 0; font-size: 26px; }
+  .cvals .k { display: inline-block; width: 70px; color: #8a7b6b; font-size: 20px; }
+  .cvals .cp { color: #8a7b6b; font-size: 18px; margin-left: 16px; }
+
+  .grid { left: 390px; top: 190px; width: 820px; }
+  .tile { position: absolute; width: 190px; height: 190px; border-radius: 4px; }
+  .vrow { left: 390px; width: 820px; height: 150px; }
+  .vthumb { position: absolute; left: 0; top: 0; width: 240px; height: 135px; border-radius: 4px; }
+  .dur { position: absolute; right: 8px; bottom: 7px; background: rgba(33,28,23,.86); color: #e6dccd; font-size: 15px; padding: 0 8px; border-radius: 3px; }
+  .vtitle { position: absolute; left: 270px; top: -4px; width: 540px; font-size: 25px; line-height: 1.35; }
+  .vmeta { position: absolute; left: 270px; top: 76px; font-size: 18px; color: #8a7b6b; }
+  #pStage { left: 400px; top: 160px; width: 800px; height: 450px; background: #3b2f25; border-radius: 4px; overflow: hidden; }
+  #pPoster { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, #5c4535, #2d231b 75%);
+    display: flex; align-items: center; justify-content: center; color: #e6dccd; font-size: 40px; }
+  .blob { position: absolute; border-radius: 50%; }
+  #pCtl { left: 400px; top: 626px; width: 800px; display: flex; align-items: center; gap: 22px; font-size: 21px; }
+  #pCtl .time { color: #8a7b6b; font-variant-numeric: tabular-nums; }
+  #pSeek { flex: 1; height: 6px; background: #e1d6c4; border-radius: 3px; position: relative; }
+  #pSeekFill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #8a4b2a; width: 0; }
+
+  .story { left: 390px; width: 820px; height: 170px; }
+  .story h2 { margin: 0; font-size: 29px; font-weight: normal; line-height: 1.3; color: #8a4b2a; }
+  .story .via { color: #8a7b6b; font-size: 18px; margin-top: 2px; }
+  .story p { margin: 4px 0 0; font-size: 22px; line-height: 1.4; }
+  .story .also { margin-top: 4px; font-size: 19px; color: #8a7b6b; }
+  .story .also u { text-decoration: none; color: #8a4b2a; }
+  .story .also .hl { border-bottom: 2px solid #8a4b2a; }
+  .spic { position: absolute; right: 0; top: 6px; width: 170px; height: 118px; border-radius: 4px; }
+  #nUnder { position: absolute; top: 152px; height: 2px; background: #8a4b2a; }
+  .nwing { position: absolute; top: 120px; font-size: 21px; color: #8a7b6b; white-space: nowrap; }
+  .cwing h3 { margin: 0 0 4px; font-size: 17px; letter-spacing: .06em; color: #8a7b6b; font-weight: normal;
+    border-bottom: 1px solid #d9cfbf; padding-bottom: 4px; }
+  .cwing .h { font-size: 27px; color: #8a4b2a; line-height: 1.3; margin: 6px 0 2px; }
+  #rdTitle { font-size: 42px; line-height: 1.25; font-weight: normal; margin: 0; }
+  #rdPars p { margin: 0 0 18px; line-height: 1.7; }
+
+  #iView { position: absolute; inset: 0; background: rgba(244,239,230,.97); }
+  #iViewImg { position: absolute; left: 400px; top: 100px; width: 800px; height: 480px; border-radius: 4px;
+    background: radial-gradient(circle at 36% 42%, #b9653b 0 18%, rgba(0,0,0,0) 19%), radial-gradient(circle at 60% 38%, #f4efe6 0 8%, rgba(0,0,0,0) 9%),
+      linear-gradient(160deg, #d9c3a0, #9c7e5c); }
+
+  #help { left: 1180px; top: 560px; width: 340px; background: #f4efe6; border: 1px solid #d9cfbf; border-radius: 5px;
+    padding: 14px 20px; font-size: 19px; line-height: 1.5; }
+  #help p { margin: 2px 0; color: #8a7b6b; }
+  #help span { display: inline-block; min-width: 100px; color: #3b2f25; }
+
+  /* ---------- layers above the world ---------- */
+  #caption { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-size: 60px; opacity: 0; color: #3b2f25; }
+  #endcard { position: absolute; left: 0; right: 0; top: 44px; text-align: center; opacity: 0; }
+  #endcard .big { font-size: 112px; line-height: 1.1; }
+  #endcard .small { font-size: 42px; color: #8a7b6b; margin-top: 8px; }
+  #diagram { position: absolute; inset: 0; background: #f4efe6; opacity: 0; visibility: hidden; }
+  #diagram svg { position: absolute; left: 0; top: 0; }
+  #dLines { position: absolute; left: 0; right: 0; top: 770px; text-align: center; font-size: 74px; height: 100px; }
+  #dLines span { position: absolute; left: 0; right: 0; opacity: 0; }
+  #dFoot { position: absolute; left: 0; right: 0; top: 930px; text-align: center; font-size: 30px; color: #8a7b6b; opacity: 0; }
+  #card { position: absolute; inset: 0; background: #f4efe6; opacity: 0; visibility: hidden;
+    display: flex; align-items: center; justify-content: center; font-size: 96px; text-align: center; padding: 0 160px; line-height: 1.2; }
+  #keycaps { position: absolute; left: 0; right: 0; bottom: 70px; display: flex; justify-content: center; gap: 26px; opacity: 0; }
+  .key { width: 96px; height: 96px; border-radius: 16px; background: #f4efe6; border: 2px solid #d9cfbf;
+    box-shadow: 0 8px 0 #cfc4b4; display: flex; align-items: center; justify-content: center; font-size: 46px; color: #3b2f25; }
+  .key.down { transform: translateY(6px); box-shadow: 0 2px 0 #cfc4b4; background: #8a4b2a; color: #f4efe6; border-color: #8a4b2a; }
+  #fade { position: absolute; inset: 0; background: #1b1714; opacity: 1; pointer-events: none; }
+  #hud { position: absolute; left: 36px; bottom: 28px; color: #e6dccd; font-size: 22px; opacity: 0; font-family: Georgia, serif; }
+  #start { position: absolute; inset: 0; background: #211c17; color: #e6dccd; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; cursor: pointer; z-index: 50; }
+  #start div { font-size: 150px; line-height: 1; }
+  #start p { font-size: 34px; color: #d9a073; margin: 30px 0 6px; }
+  #start small { font-size: 22px; color: #8a7b6b; }
+  #err { position: absolute; left: 20px; top: 20px; color: #ff6a4d; font: 22px monospace; z-index: 99; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+  <div id="world">
+    <div id="desk"></div>
+    <div id="sun"></div>
+    <div id="motes"></div>
+    <div id="mugShadow"></div><div id="mugBody"></div><div id="mugHandle"></div><div id="mugTop"></div>
+    <svg id="steam" viewBox="0 0 110 150" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="5" stroke-linecap="round">
+      <path id="st1" d="M30 148 C 8 118, 52 98, 30 66 C 14 42, 40 28, 30 6" pathLength="1"/>
+      <path id="st2" d="M72 148 C 50 120, 94 96, 72 62 C 58 40, 82 26, 72 4" pathLength="1"/>
+    </svg>
+    <div id="notebook"></div><div id="pencilObj"></div>
+    <div id="rig">
+      <div id="shadow"></div><div id="base"></div>
+      <div id="lid">
+        <div id="bezel"></div>
+        <div id="screenWrap"><div id="screen"></div><div id="screenOff"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="caption"></div>
+  <div id="endcard"><div class="big">nook</div><div class="small">a quiet place to search.</div></div>
+  <div id="keycaps"><div class="key">j</div><div class="key">k</div><div class="key">s</div><div class="key">/</div></div>
+  <div id="diagram">
+    <svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" stroke="#3b2f25" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path id="dP1" d="M 420 380 C 520 330, 640 440, 760 380" pathLength="1"/>
+      <path id="dP2" d="M 1160 380 C 1280 330, 1400 440, 1500 380" pathLength="1"/>
+      <path id="dN1" d="M 250 300 C 190 300, 170 460, 250 470 C 360 482, 430 330, 380 292 C 340 270, 290 296, 250 300 Z" pathLength="1"/>
+      <path id="dN2" d="M 800 290 C 780 330, 780 430, 800 470 C 900 488, 1050 480, 1120 466 C 1140 420, 1140 340, 1120 292 C 1040 278, 880 282, 800 290 Z" pathLength="1"/>
+      <path id="dN3" d="M 1540 300 C 1510 350, 1520 430, 1550 470 C 1640 490, 1760 480, 1800 460 C 1820 410, 1818 340, 1790 296 C 1720 276, 1610 284, 1540 300 Z" pathLength="1"/>
+      <path id="dRoute" d="M 1540 380 C 1420 330, 1300 440, 1160 380 L 800 380 C 700 330, 560 440, 420 380" stroke="none"/>
+    </svg>
+    <div id="dL1" class="a" style="left:230px;top:350px;width:180px;text-align:center;font-size:44px">you</div>
+    <div id="dL2" class="a" style="left:800px;top:350px;width:320px;text-align:center;font-size:56px">nook</div>
+    <div id="dL3" class="a" style="left:1540px;top:350px;width:260px;text-align:center;font-size:44px">the web</div>
+    <div id="dTravel"></div>
+    <div id="dLines"><span>no accounts.</span><span>no tracking.</span><span>just search.</span></div>
+    <div id="dFoot">nothing is logged.</div>
+  </div>
+  <div id="card"><span></span></div>
+  <div id="fade"></div>
+  <div id="hud"></div>
+  <div id="start"><div>nook</div><p>click anywhere to play</p><small>sixty seconds · there is sound · no voice</small></div>
+  <div id="err"></div>
+</div>
+</div>
+
+<script>
+window.onerror = function (m, s, l, c) { var e = document.getElementById("err"); if (e) e.textContent += m + " (" + l + ":" + c + ")\n"; };
+
+(function () {
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var clamp = function (x, a, b) { a = a === undefined ? 0 : a; b = b === undefined ? 1 : b; return x < a ? a : x > b ? b : x; };
+var seg = function (t, a, b) { return clamp((t - a) / (b - a)); };
+var eo = function (x) { return 1 - Math.pow(1 - x, 3); };
+var eio = function (x) { return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+var lerp = function (a, b, x) { return a + (b - a) * x; };
+var DURATION = 60;
+
+/* ===================== the interface ===================== */
+var PENCIL = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+var SPEAKER = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></svg>';
+
+var RES = [
+  { t: "a beginner's guide to sourdough starter", u: "kitchen.example.org/sourdough-starter", c: "#8a4b2a",
+    s: "feed it flour and water, wait, and watch. your <b>sourdough starter</b> needs about a week to wake up.", via: "duckduckgo · yahoo · read · save" },
+  { t: "day by day: building a sourdough starter", u: "crumb.example.org/day-by-day", c: "#6f8f72",
+    s: "a plain diary of the first seven days, with a photo of every <b>starter</b> stage.", via: "duckduckgo · bing · yahoo · read · save" },
+  { t: "why your starter smells like nail polish", u: "loaf.example.net/the-smell", c: "#b08968",
+    s: "a sharp smell usually means a hungry <b>starter</b>. here is what to feed it, and when.", via: "bing · yahoo · read · save" },
+  { t: "sourdough starter troubleshooting, answered", u: "bakers.example.com/help", c: "#a47c9a",
+    s: "watery layer on top? no bubbles? the most common <b>sourdough</b> questions, one by one.", via: "duckduckgo · read · save" }
+];
+function resHTML(r) {
+  return '<div class="t">' + r.t + '</div><div class="u"><span class="ico" style="background:' + r.c + '"></span>' + r.u +
+    '</div><p>' + r.s + '</p><div class="via">' + r.via + '</div>';
+}
+function bar(p, tab, q) {
+  var tabs = ["web", "images", "videos"].map(function (n) { return '<span class="' + (n === tab ? "on" : "") + '">' + n + '</span>'; }).join("");
+  return '<div class="a bar"><span class="brand">nook</span><span class="q" id="' + p + 'Q">' + q + '</span><i class="line"></i></div>' +
+    '<div class="a tabs" id="' + p + 'Tabs">' + tabs + '<span class="eng" id="' + p + 'Eng">engines</span></div>';
+}
+var TILE_COLORS = ["#d9b99b", "#c8a27c", "#e3cfae", "#b98e6a", "#cdb89a", "#a9a07a", "#d8c3a5", "#c4a484", "#e0b88a", "#b5946f", "#d7c0a0", "#c99a73"];
+var tilesHTML = TILE_COLORS.map(function (c, i) {
+  var x = (i % 4) * 210, y = Math.floor(i / 4) * 210;
+  return '<div class="tile" id="tile' + i + '" style="left:' + x + 'px;top:' + y + 'px;background:radial-gradient(circle at ' + (28 + (i * 17) % 50) + '% ' + (30 + (i * 23) % 40) +
+    '%, rgba(255,255,255,.28) 0 22%, rgba(0,0,0,0) 23%), linear-gradient(' + (130 + i * 13) + 'deg, ' + c + ', ' + TILE_COLORS[(i + 5) % 12] + ')"></div>';
+}).join("");
+var VIDS = [
+  { t: "red panda cubs, the first week", m: "the open column · 4.2K views · 2026-09-14", d: "12:48", c: ["#c9a37a", "#8f6b4c"] },
+  { t: "a quiet morning in the bamboo forest", m: "northern post · 18K views · 2026-08-30", d: "4:21", c: ["#9fb08a", "#5f7a52"] },
+  { t: "how rescue keepers care for young pandas", m: "the daily ledger · 1.1M views · 2026-07-02", d: "22:05", c: ["#d9b99b", "#a9805c"] }
+];
+var vidsHTML = VIDS.map(function (v, i) {
+  return '<div class="a vrow" id="vrow' + i + '"><div class="vthumb" style="background:linear-gradient(150deg,' + v.c[0] + ',' + v.c[1] + ')"><span class="dur">' + v.d +
+    '</span></div><div class="vtitle">' + v.t + '</div><div class="vmeta">' + v.m + '</div></div>';
+}).join("");
+
+var CARDS = [
+  '<div class="word"><h2>serendipity</h2><span class="say" id="mSay">' + SPEAKER + '</span></div><div class="phon">/ˌsɛrənˈdɪpɪti/</div><p class="pos">noun</p>' +
+    '<ol class="senses"><li>finding something good without looking for it<span class="eg">“a happy bit of serendipity.”</span></li></ol>' +
+    '<p class="sim"><span>similar</span><a>luck</a><a>chance</a><a>fluke</a><a>fortune</a></p>' +
+    '<p class="orig"><span>origin</span>coined in 1754 by horace walpole, from the tale of the three princes of serendip.</p><p class="src">a dictionary · full entry</p>',
+  '<div class="zrow from" id="zFrom"><span class="t">21:56</span><span class="p">ethiopia<span class="z">EAT, UTC+3 · addis ababa</span></span></div>' +
+    '<div class="zrow to" id="zTo"><span class="t">20:56</span><span class="p">germany<span class="z">CEST, UTC+2 · berlin</span></span></div>' +
+    '<p class="src" id="zNote">germany is 1 hour behind ethiopia · wednesday 21 october</p>',
+  '<div class="now"><span class="deg" id="wDeg">12°C</span><span class="what">bonn, germany<span class="z">overcast · feels like 9° · wind 12 km/h · humidity 80% · 53°F</span></span></div>' +
+    '<ul class="days" id="wDays">' + [["today", "light rain · 100% rain", "10° / 14°"], ["thursday", "overcast", "7° / 13°"], ["friday", "heavy drizzle · 90% rain", "10° / 12°"],
+      ["saturday", "drizzle", "8° / 12°"], ["sunday", "overcast", "6° / 11°"]].map(function (d) {
+      return '<li><span class="d">' + d[0] + '</span><span class="tx">' + d[1] + '</span><span>' + d[2] + '</span></li>'; }).join("") +
+    '</ul><p class="src">sunrise 07:48 · sunset 18:06 · weather: open-meteo.com</p>',
+  '<p class="answer" id="cAns">100 USD = 89.02 EUR</p><p class="src">rates from the European Central Bank, 2026-10-21</p>',
+  '<div class="big" id="tBig">5:00</div><p class="src"><span class="btn" id="tStart">start</span><span class="btn">reset</span></p>',
+  '<div style="display:flex;gap:34px;align-items:center"><svg width="150" height="150" viewBox="0 0 10 10"><rect width="10" height="10" rx="1.2" fill="#ff8800"/></svg>' +
+    '<div class="cvals"><p><span class="k">hex</span>#ff8800<span class="cp">copy</span></p><p><span class="k">rgb</span>rgb(255, 136, 0)<span class="cp">copy</span></p><p><span class="k">hsl</span>hsl(32, 100%, 50%)<span class="cp">copy</span></p></div></div>',
+  '<div class="big" id="dBig">65 days</div><p class="src">until christmas · friday 25 december 2026 · 9 weeks 2 days</p>'
+];
+var QUERIES = ["define serendipity", "ethiopia time to germany time", "weather in bonn", "100 usd in eur", "timer 5 min", "#ff8800", "days until christmas"];
+
+var NEWS = [
+  { h: "council approves new river path after long debate", via: "the daily ledger · centre · 12m ago",
+    p: "the plan joins two neighbourhoods along the water and opens next spring, after months of argument over cost.",
+    also: '<u>northern post</u> (left), <u>the open column</u> (right) · <span class="hl">compare</span>', c: ["#c9a37a", "#8f6b4c"] },
+  { h: "repair fair opens with a focus on mendable phones", via: "northern post · left · 40m ago",
+    p: "volunteers fixed more than two hundred devices on the first day, and the queue ran around the block.", also: "", c: ["#9fb08a", "#5f7a52"] },
+  { h: "harbour reopens after storm repairs", via: "the open column · right · 1h ago",
+    p: "ferries are running again, with a reduced timetable until the last of the pier work is finished.", also: "", c: ["#d9b99b", "#a9805c"] }
+];
+var storiesHTML = NEWS.map(function (s, i) {
+  return '<div class="a story" id="story' + i + '"><div class="spic" id="spic' + i + '" style="background:linear-gradient(150deg,' + s.c[0] + ',' + s.c[1] + ')"></div>' +
+    '<h2 style="width:630px">' + s.h + '</h2><div class="via">' + s.via + '</div><p style="width:630px">' + s.p + '</p>' +
+    (s.also ? '<div class="also">also told by ' + s.also + '</div>' : '') + '</div>';
+}).join("");
+var WINGS = ["all", "far left", "left", "centre", "right", "far right"];
+var wingsHTML = WINGS.map(function (w, i) {
+  return '<span class="nwing" id="nw' + i + '" style="left:' + [390, 468, 618, 696, 812, 908][i] + 'px">' + w + '</span>';
+}).join("");
+
+var screenEl = $("screen");
+screenEl.innerHTML =
+  /* HOME */
+  '<div class="page" id="home">' +
+    '<div class="a" id="pencilBtn">' + PENCIL + '</div><div id="pencilRing"></div>' +
+    '<h1 class="a center" id="hTitle">nook</h1>' +
+    '<div class="a center" id="hSub"><span>news</span><span>engines</span></div>' +
+    '<div class="a" id="hBox"><span id="hTyped"></span><i class="caret" id="hCaret"></i></div>' +
+    '<div class="a center" id="hGreet">good evening, sam</div><div class="a center" id="hDate">wednesday 21 october</div>' +
+    '<div class="a center" id="hMarks"><span>mail</span><span>notes</span><span>maps</span></div>' +
+    '<div class="a center" id="hRecent"><span class="lab">recent</span><span class="lnk">sourdough starter &nbsp;&nbsp;&nbsp; red panda &nbsp;&nbsp;&nbsp; weather in bonn</span></div>' +
+    '<div class="a center" id="hSaved"><span class="lab">saved</span><span class="lnk">a beginner\'s guide to sourdough starter</span> <span class="soft">&nbsp;read &nbsp;×</span></div>' +
+    '<div class="a" id="hNotes">buy flour<br>call mum</div>' +
+    '<div class="a center" id="hFoot">about · news · nothing is logged · press ? for shortcuts</div>' +
+    '<div class="a panel" id="hEdit" style="left:480px;top:150px;width:640px">' +
+      '<div class="cbrow"><i class="cb" id="e1"></i> show a greeting, the date and my bookmarks</div>' +
+      '<div class="cbrow"><i class="cb" id="e2"></i> remember my recent searches</div>' +
+      '<div class="cbrow"><i class="cb on" id="e3"></i> show the things I saved</div>' +
+      '<div class="cbrow"><i class="cb" id="e4"></i> show a notes box</div>' +
+      '<div style="margin:12px 0 4px">your name <span class="soft small">(optional)</span><br><span id="eName" style="border-bottom:1px solid #d9cfbf;display:inline-block;min-width:260px;min-height:34px"></span></div>' +
+      '<div style="margin-top:14px"><span class="btn" id="eSave">save</span><span class="btn">clear everything</span><span class="small soft">kept only in this browser</span></div>' +
+      '<div style="margin-top:8px"><span class="btn" id="eBack">back up</span><span class="btn">restore</span><span class="small soft" id="eStatus">a backup is one small file</span></div>' +
+    '</div>' +
+  '</div>' +
+  /* RESULTS */
+  '<div class="page" id="results">' + bar("r", "web", "") +
+    '<div id="rList"></div><div id="rStubs"></div><div id="rCards"></div>' +
+    '<div class="a" id="rRelated" style="left:390px;top:716px;width:820px;font-size:21px"><span class="soft" style="margin-right:14px">related</span><span class="lnk">sourdough starter recipe &nbsp;&nbsp; sourdough starter kit &nbsp;&nbsp; feeding schedule</span></div>' +
+    '<div class="a soft" id="rAnswered" style="left:390px;top:790px;font-size:19px">answered by duckduckgo, bing, yahoo.</div>' +
+    '<div class="a panel" id="rDrop" style="left:790px;top:158px;width:420px;font-size:21px">' +
+      '<div class="cbrow"><i class="cb on" id="d1"></i> duckduckgo</div><div class="cbrow"><i class="cb on" id="d2"></i> bing</div>' +
+      '<div class="cbrow"><i class="cb on" id="d3"></i> yahoo</div><div class="cbrow"><i class="cb on" id="d4"></i> seznam</div>' +
+      '<div style="margin-top:10px">region <span class="sel" id="dRegion">automatic</span></div>' +
+      '<div style="margin-top:6px">safe search <span class="sel">moderate</span></div>' +
+      '<div style="margin-top:6px">time <span class="sel" id="dTime">any time</span></div>' +
+      '<div style="margin-top:10px">hide these sites<br><span id="dHide" style="display:inline-block;border:1px solid #d9cfbf;border-radius:3px;width:100%;min-height:36px;padding:0 10px"></span></div>' +
+      '<div style="margin-top:12px"><span class="btn" id="dSave">save</span><span class="small soft">remembered in this browser</span></div>' +
+    '</div>' +
+  '</div>' +
+  /* IMAGES */
+  '<div class="page" id="images">' + bar("i", "images", "") + '<div class="a grid" id="iGrid">' + tilesHTML + '</div>' +
+    '<div class="a soft" style="left:390px;top:820px;font-size:19px">answered by bing images.</div>' +
+    '<div id="iView"><div id="iViewImg"></div><div class="a center" style="top:610px;font-size:26px">a red panda, resting in a tree</div>' +
+    '<div class="a center soft" style="top:660px;font-size:22px"><span class="lnk">back</span> &nbsp;&nbsp; <span class="lnk">source page</span> &nbsp;&nbsp; <span class="lnk">full image</span> &nbsp;&nbsp; <span class="lnk">next</span> &nbsp;&nbsp; <span class="lnk">close</span></div></div>' +
+  '</div>' +
+  /* VIDEOS + PLAYER */
+  '<div class="page" id="videos">' + bar("v", "videos", "red panda") +
+    '<div id="vList">' + vidsHTML + '</div>' +
+    '<div id="vPlayer">' +
+      '<div class="a" id="pStage"><div id="pPoster">play</div><div id="pBlobs"></div></div>' +
+      '<div class="a" id="pCtl"><span class="lnk" id="pBtn">play</span><span class="time" id="pTime">0:00 / 0:19</span><span id="pSeek"><i id="pSeekFill"></i></span><span class="lnk">sound</span><span class="lnk">full</span></div>' +
+      '<div class="a" style="left:400px;top:690px;width:800px;font-size:24px">red panda cubs, the first week</div>' +
+      '<div class="a soft" style="left:400px;top:740px;width:800px;font-size:19px">nothing is sent to youtube until you press play.</div>' +
+    '</div>' +
+  '</div>' +
+  /* NEWS */
+  '<div class="page" id="news">' +
+    '<div class="a bar"><span class="brand">nook</span><span class="q" style="font-size:26px;color:#3b2f25">news</span></div>' +
+    wingsHTML + '<i id="nUnder"></i>' +
+    '<div class="a soft" id="nToggle" style="left:390px;top:172px;font-size:19px"><span id="nTxt">text only</span> · <span id="nPic">with pictures</span></div>' +
+    '<div id="nStories">' + storiesHTML + '</div>' +
+  '</div>' +
+  /* COMPARE */
+  '<div class="page" id="compare">' +
+    '<div class="a bar"><span class="brand">nook</span><span class="q" style="font-size:26px">news</span><span class="q" style="left:190px;font-size:26px;color:#3b2f25">compare</span></div>' +
+    '<div class="a" id="cmTitle" style="left:390px;top:130px;width:820px;font-size:38px;line-height:1.3">council approves new river path after long debate</div>' +
+    '<div class="a soft" id="cmNote" style="left:390px;top:262px;width:820px;font-size:19px">3 outlets in nook\'s feeds ran this, from the far left to the far right.</div>' +
+    '<div class="a cwing" id="cmL" style="left:390px;top:330px;width:820px"><h3>left</h3><div class="h">a path for people, at last: council backs the river route</div><div class="soft" style="font-size:19px">northern post · 25m ago</div></div>' +
+    '<div class="a cwing" id="cmC" style="left:390px;top:480px;width:820px"><h3>centre</h3><div class="h">council approves new river path after long debate</div><div class="soft" style="font-size:19px">the daily ledger · 12m ago</div></div>' +
+    '<div class="a cwing" id="cmR" style="left:390px;top:630px;width:820px"><h3>right</h3><div class="h">council spends millions on river path despite objections</div><div class="soft" style="font-size:19px">the open column · 1h ago</div></div>' +
+  '</div>' +
+  /* READER */
+  '<div class="page" id="reader">' +
+    '<div class="a bar"><span class="brand">nook</span><span class="q" style="font-size:26px">news</span></div>' +
+    '<div class="a" id="rdBody" style="left:420px;top:130px;width:760px">' +
+      '<h1 id="rdTitle">council approves new river path after long debate</h1>' +
+      '<div class="soft" style="font-size:19px;margin:6px 0 10px">the daily ledger · 12m ago</div>' +
+      '<div id="rdBtn" style="display:inline-block;border:1px solid #8a4b2a;color:#8a4b2a;border-radius:3px;padding:4px 18px;font-size:19px">read at the daily ledger</div>' +
+      '<div class="soft" style="font-size:18px;margin:16px 0 18px">4 min read · text <span class="lnk">smaller</span> <span class="lnk" id="rdBig">bigger</span> · <span class="lnk">wider</span> · <span class="lnk" id="rdListen">listen</span></div>' +
+      '<div id="rdPars"><p>the river path will run for three kilometres, joining the old mill district to the market square.</p>' +
+      '<p>after a long evening of speeches, the council voted seven to four in favour, with the work due to start in the spring.</p>' +
+      '<p>supporters call it a long-awaited link between two parts of town; critics point to the cost and to the trees that will go.</p></div>' +
+    '</div>' +
+    '<div class="a" id="help" style="left:1180px;top:560px"><p><span>/</span>search</p><p><span>j  k</span>next, previous</p><p><span>enter</span>open</p><p><span>r</span>read it here</p><p><span>s</span>save it</p><p><span>1  2  3</span>web, images, videos</p><p><span>n</span>news</p><p><span>?</span>this list</p></div>' +
+  '</div>';
+
+var Q = {};  /* every element we animate, found once */
+function ids(list) { list.forEach(function (i) { Q[i] = $(i); }); }
+ids(["home", "results", "images", "videos", "news", "compare", "reader", "hTitle", "hSub", "hBox", "hTyped", "hCaret", "hFoot", "pencilBtn", "pencilRing",
+  "hGreet", "hDate", "hMarks", "hRecent", "hSaved", "hNotes", "hEdit", "e1", "e2", "e3", "e4", "eName", "eSave", "eBack", "eStatus",
+  "rQ", "rTabs", "rEng", "rList", "rStubs", "rCards", "rRelated", "rAnswered", "rDrop", "d1", "d2", "d3", "d4", "dRegion", "dTime", "dHide", "dSave",
+  "iQ", "iTabs", "iGrid", "iView", "iViewImg", "vQ", "vTabs", "vList", "vPlayer", "pStage", "pPoster", "pBlobs", "pBtn", "pTime", "pSeek", "pSeekFill", "pCtl",
+  "nUnder", "nToggle", "nTxt", "nPic", "nStories", "cmTitle", "cmNote", "cmL", "cmC", "cmR", "rdBody", "rdTitle", "rdBtn", "rdBig", "rdListen", "rdPars", "help",
+  "world", "lid", "screenOff", "sun", "motes", "steam", "st1", "st2", "caption", "endcard", "keycaps", "diagram", "card", "fade", "hud", "start", "stage"]);
+
+/* results list items and stubs and cards */
+var resEls = RES.map(function (r) { var d = document.createElement("div"); d.className = "a res"; d.innerHTML = resHTML(r); Q.rList.appendChild(d); return d; });
+var stubEls = [0, 1].map(function (i) { var d = document.createElement("div"); d.className = "a res"; d.innerHTML = resHTML(RES[i]); d.style.top = (600 + i * 130) + "px"; Q.rStubs.appendChild(d); return d; });
+var cardEls = CARDS.map(function (h) { var d = document.createElement("div"); d.className = "a cardbox"; d.innerHTML = h; Q.rCards.appendChild(d); return d; });
+var vrows = [0, 1, 2].map(function (i) { return $("vrow" + i); });
+var tiles = TILE_COLORS.map(function (c, i) { return $("tile" + i); });
+var stories = [0, 1, 2].map(function (i) { return $("story" + i); });
+var spics = [0, 1, 2].map(function (i) { return $("spic" + i); });
+var wingEls = WINGS.map(function (w, i) { return $("nw" + i); });
+vrows.forEach(function (el, i) { el.style.top = (190 + i * 168) + "px"; });
+stories.forEach(function (el, i) { el.style.top = (230 + i * 196) + "px"; });
+Q.rTabs.querySelectorAll("span").forEach(function (s) { /* tabs row gets its own ids for fading */ });
+var blobs = [];
+for (var bi = 0; bi < 9; bi++) { var bl = document.createElement("div"); bl.className = "blob"; Q.pBlobs.appendChild(bl); blobs.push(bl); }
+
+/* the desk's dust */
+var motes = [];
+for (var mi = 0; mi < 30; mi++) {
+  var m = document.createElement("div"); m.className = "mote"; Q.motes.appendChild(m);
+  motes.push({ el: m, x: 80 + (mi * 211) % 1100, y: 40 + (mi * 97) % 720, s: 0.5 + (mi % 5) * 0.28, p: mi * 1.7 });
+}
+
+/* ===================== helpers that draw a moment ===================== */
+function vis(el, p, rise) {
+  if (!el) return;
+  el.style.opacity = p;
+  el.style.visibility = p <= 0.002 ? "hidden" : "visible";
+  el.style.transform = rise ? "translateY(" + ((1 - p) * rise).toFixed(2) + "px)" : "";
+}
+function R(el, t, t0, d, rise) { var p = eo(seg(t, t0, t0 + (d || 0.5))); vis(el, p, rise === undefined ? 10 : rise); return p; }
+function RO(el, t, t0, t1, d, rise) { d = d || 0.4; var p = eo(seg(t, t0, t0 + d)) * (1 - eo(seg(t, t1, t1 + d))); vis(el, p, rise === undefined ? 8 : rise); return p; }
+function typed(str, t, t0, t1) { return str.slice(0, Math.floor(seg(t, t0, t1) * str.length + 0.0001)); }
+function caret(t, on) { Q.hCaret.style.opacity = on && (Math.floor(t * 2) % 2 === 0) ? 1 : 0; }
+function fmtClock(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); }
+
+/* when each page is on screen; later starts sit on top */
+var WINDOWS = {
+  home: [[0, 8.9], [50.0, 54.1], [57.4, 61]],
+  results: [[8.7, 28.1], [47.4, 50.3]],
+  images: [[28.0, 33.7]],
+  videos: [[33.5, 38.5]],
+  news: [[38.3, 42.4]],
+  compare: [[42.2, 44.2]],
+  reader: [[44.0, 47.8]]
+};
+function pages(t) {
+  Object.keys(WINDOWS).forEach(function (k) {
+    var p = 0, top = -1;
+    WINDOWS[k].forEach(function (w) {
+      var v = seg(t, w[0], w[0] + 0.4) - seg(t, w[1], w[1] + 0.4);
+      if (v > p) p = v;
+      if (t >= w[0] && w[0] > top) top = w[0];
+    });
+    var el = Q[k];
+    el.style.opacity = clamp(p);
+    el.style.visibility = p <= 0.002 ? "hidden" : "visible";
+    el.style.zIndex = Math.round(top * 10) + 1;
+  });
+}
+
+/* ===================== the camera ===================== */
+var FULL = { s: 1920 / 1100, x: 960, y: 260 + 619 / 2 };
+var CAM = [
+  [0, 1.06, 905, 600], [6.0, 1.0, 960, 560], [7.4, FULL.s, FULL.x, FULL.y], [30, FULL.s * 1.006, FULL.x, FULL.y], [54, FULL.s * 1.012, FULL.x, FULL.y],
+  [58.2, FULL.s * 1.012, FULL.x, FULL.y], [59.9, 1.0, 960, 560], [60, 1.0, 960, 560]
+];
+function camera(t) {
+  var i = 0;
+  while (i < CAM.length - 2 && t > CAM[i + 1][0]) i++;
+  var a = CAM[i], b = CAM[i + 1], x = eio(seg(t, a[0], b[0]));
+  var long = (b[0] - a[0]) > 8;                     // long holds drift gently instead of easing
+  if (long) x = seg(t, a[0], b[0]);
+  var s = lerp(a[1], b[1], x), fx = lerp(a[2], b[2], x), fy = lerp(a[3], b[3], x);
+  Q.world.style.transform = "translate(960px,540px) scale(" + s.toFixed(5) + ") translate(" + (-fx).toFixed(2) + "px," + (-fy).toFixed(2) + "px)";
+}
+
+/* ===================== the whole film, as a function of time ===================== */
+var SLOT = 1.8, M0 = 13.9;
+var TYPES = [{ t0: 7.3, t1: 8.8, s: "sourdough starter" }, { t0: 28.2, t1: 28.85, s: "red panda" }];
+for (var qi = 0; qi < QUERIES.length; qi++) TYPES.push({ t0: M0 + SLOT * qi, t1: M0 + SLOT * qi + 0.7, s: QUERIES[qi] });
+var CARDS_T = [[12.4, 13.9, "three engines. one list."], [26.5, 28.0, "it just knows."], [32.2, 33.6, "nothing loads until you ask."],
+  [37.0, 38.4, "see how it was told."], [46.2, 47.6, "your settings stay in your browser."]];
+
+function render(t) {
+  camera(t);
+
+  /* ---- S1: the desk wakes ---- */
+  var lidAngle = -88 * (1 - eio(seg(t, 0.7, 2.1)));
+  Q.lid.style.transform = "rotateX(" + lidAngle.toFixed(2) + "deg)";
+  Q.screenOff.style.opacity = 1 - eo(seg(t, 1.9, 2.9));
+  Q.sun.style.opacity = lerp(0.15, 0.85, eo(seg(t, 0, 6))) * (1 - 0.35 * seg(t, 58, 60));
+  Q.st1.style.strokeDasharray = "0.5 0.5"; Q.st2.style.strokeDasharray = "0.5 0.5";
+  Q.st1.style.strokeDashoffset = (-(t * 0.12) % 1).toFixed(3); Q.st2.style.strokeDashoffset = (-(t * 0.09 + .3) % 1).toFixed(3);
+  Q.steam.style.opacity = 0.55 + 0.25 * Math.sin(t * 0.9);
+  motes.forEach(function (m) {
+    m.el.style.transform = "translate(" + (m.x + Math.sin(t * 0.22 * m.s + m.p) * 34).toFixed(1) + "px," + (m.y + Math.cos(t * 0.17 * m.s + m.p) * 24 - t * 2.2 * m.s % 700).toFixed(1) + "px)";
+    m.el.style.opacity = (0.25 + 0.55 * Math.abs(Math.sin(t * 0.4 + m.p))) * (1 - seg(t, 5, 7));
+  });
+  Q.fade.style.opacity = (1 - eo(seg(t, 0, 1.5))) + seg(t, 59.4, 60) * 0;
+  var cap = eo(seg(t, 2.8, 3.7)) * (1 - eo(seg(t, 5.2, 5.9)));
+  Q.caption.textContent = "search, without the noise.";
+  vis(Q.caption, cap, 12);
+
+  /* ---- the home page ---- */
+  var homeIn = t < 20 ? 1 : 0;
+  R(Q.hTitle, t, 2.5, 0.7, 12); R(Q.hSub, t, 3.1, 0.6, 10); R(Q.hBox, t, 3.3, 0.6, 8); R(Q.pencilBtn, t, 3.7, 0.6, 0); R(Q.hFoot, t, 3.7, 0.6, 0);
+  var typingHome = t >= TYPES[0].t0 && t <= 8.95;
+  Q.hTyped.textContent = t < 8.95 ? typed(TYPES[0].s, t, TYPES[0].t0, TYPES[0].t1) : "";
+  caret(t, (t > 3.8 && t < 9.0) || (t > 57.6));
+  var ring = seg(t, 5.0, 5.9) * (1 - seg(t, 5.9, 6.0)); Q.pencilRing.style.opacity = ring * 0.8 + (t > 50.2 && t < 51 ? (1 - seg(t, 50.2, 50.9)) * 0.9 : 0);
+  Q.pencilRing.style.transform = "scale(" + (0.8 + 0.5 * (t < 20 ? seg(t, 5.0, 5.9) : seg(t, 50.2, 50.9))) + ")";
+  /* in the last scene the home page returns, empty */
+  if (t > 54) { Q.hTitle.style.opacity = 1; Q.hTitle.style.visibility = "visible"; Q.hTitle.style.transform = ""; }
+
+  /* ---- S2: one search, many engines ---- */
+  var inResults = t >= 8.7;
+  var rq = "";
+  if (t >= 8.7 && t < 13.5) rq = TYPES[0].s;
+  else if (t >= M0 && t < 28.1) { var si = Math.min(6, Math.floor((t - M0) / SLOT)); rq = typed(QUERIES[si], t, M0 + SLOT * si, M0 + SLOT * si + 0.7); }
+  else if (t >= 47.2) rq = "sourdough starter";
+  Q.rQ.textContent = rq;
+  var order = [0, 2, 1, 3];                           // c sits above b, until the engines agree
+  var swap = eio(seg(t, 11.3, 12.1));
+  var listOn = (t < 13.7) || (t > 47.2);
+  resEls.forEach(function (el, i) {
+    var pos = i;
+    if (i === 1) pos = lerp(2, 1, swap); else if (i === 2) pos = lerp(1, 2, swap);
+    el.style.top = (178 + pos * 132).toFixed(1) + "px";
+    var p = (t > 47.2) ? eo(seg(t, 47.4, 48.0)) : eo(seg(t, 9.0 + 0.5 * order.indexOf(i) * 0.9, 9.5 + 0.5 * order.indexOf(i) * 0.9));
+    var gone = t > 13.4 && t < 47.2 ? 0 : 1;
+    vis(el, p * gone, 10);
+  });
+  R(Q.rAnswered, t, 12.0, 0.5, 4); if (t > 13.4 && t < 47.2) vis(Q.rAnswered, 0);
+  R(Q.rRelated, t, 11.8, 0.5, 4); if (t > 13.4 && t < 47.2) vis(Q.rRelated, 0);
+  if (t > 47.2) { vis(Q.rAnswered, 1); vis(Q.rRelated, 1); }
+
+  /* ---- S3: the montage of cards ---- */
+  var inMontage = t >= M0 && t < 28.1;
+  vis(Q.rStubs, inMontage ? 0.32 * eo(seg(t, M0, M0 + 0.5)) : 0);
+  CARDS.forEach(function (_, i) {
+    var a = M0 + SLOT * i, el = cardEls[i];
+    var p = eo(seg(t, a + 0.72, a + 0.98)) * (1 - seg(t, a + SLOT - 0.14, a + SLOT));
+    vis(el, p, 14);
+  });
+  /* the little life inside each card */
+  var a0 = M0, a2 = M0 + SLOT * 2, a3 = M0 + SLOT * 3, a4 = M0 + SLOT * 4, a6 = M0 + SLOT * 6;
+  $("mSay").className = "say" + (t > a0 + 1.35 && t < a0 + 1.7 ? " hot" : "");
+  vis($("zFrom"), eo(seg(t, M0 + SLOT + 0.8, M0 + SLOT + 1.1)), 8); vis($("zTo"), eo(seg(t, M0 + SLOT + 1.0, M0 + SLOT + 1.35)), 8);
+  vis($("zNote"), eo(seg(t, M0 + SLOT + 1.3, M0 + SLOT + 1.6)), 4);
+  $("wDeg").textContent = Math.round(12 * eo(seg(t, a2 + 0.8, a2 + 1.3))) + "°C";
+  $("wDays").querySelectorAll("li").forEach(function (li, i) { vis(li, eo(seg(t, a2 + 0.95 + i * 0.08, a2 + 1.2 + i * 0.08)), 6); });
+  $("cAns").textContent = "100 USD = " + (89.02 * eo(seg(t, a3 + 0.8, a3 + 1.3))).toFixed(2) + " EUR";
+  var rem = 300 - Math.max(0, (t - (a4 + 1.0)) * 1);
+  $("tBig").textContent = fmtClock(Math.ceil(rem));
+  $("tStart").className = "btn" + (t > a4 + 0.98 && t < a4 + 1.15 ? " press" : "");
+  $("dBig").textContent = Math.round(65 * eo(seg(t, a6 + 0.8, a6 + 1.3))) + " days";
+
+  /* ---- S4a: images ---- */
+  Q.iQ.textContent = t >= 28.0 ? typed(TYPES[1].s, t, TYPES[1].t0, TYPES[1].t1) : "";
+  tiles.forEach(function (el, i) { vis(el, eo(seg(t, 29.0 + i * 0.07, 29.4 + i * 0.07)), 12); });
+  var view = eo(seg(t, 30.6, 31.0)) * (1 - eo(seg(t, 31.8, 32.2)));
+  vis(Q.iView, view, 0);
+  Q.iViewImg.style.transform = "scale(" + (0.55 + 0.45 * view).toFixed(3) + ")";
+
+  /* ---- S4b: videos and the player ---- */
+  Q.vQ.textContent = "red panda";
+  vrows.forEach(function (el, i) { vis(el, eo(seg(t, 33.7 + i * 0.22, 34.1 + i * 0.22)) * (1 - eo(seg(t, 34.6, 35.0))), 12); });
+  vis(Q.vPlayer, eo(seg(t, 34.8, 35.3)), 14);
+  var pl = seg(t, 35.9, 37.6), playing = t > 35.85;
+  Q.pBtn.textContent = playing ? "pause" : "play";
+  Q.pPoster.style.opacity = 1 - eo(seg(t, 35.85, 36.2));
+  Q.pTime.textContent = fmtClock(pl * 19 * 0.7) + " / 0:19";
+  Q.pSeekFill.style.width = (pl * 70 * 0.45).toFixed(1) + "%";
+  blobs.forEach(function (b, i) {
+    var sz = 140 + (i * 53) % 190, x = 40 + ((i * 197) % 760) + Math.sin(t * 0.5 + i) * 40, y = 30 + ((i * 131) % 380) + Math.cos(t * 0.4 + i * 1.3) * 34;
+    b.style.cssText = "width:" + sz + "px;height:" + sz + "px;left:" + x.toFixed(1) + "px;top:" + y.toFixed(1) + "px;opacity:" + (playing ? 0.55 * eo(seg(t, 35.9, 36.6)) : 0) +
+      ";background:" + ["#8a4b2a", "#c9a37a", "#d9a073", "#6f5a47", "#e6dccd"][i % 5] + ";filter:blur(26px)";
+  });
+
+  /* ---- S5: the news ---- */
+  var wingSel = t < 38.9 ? 0 : t < 39.5 ? 2 : t < 40.1 ? 3 : 4;
+  var under = [[390, 36], [618, 56], [696, 98], [812, 70]];
+  var u = wingSel === 0 ? under[0] : wingSel === 2 ? under[1] : wingSel === 3 ? under[2] : under[3];
+  var slide = eio(seg(t, 38.9, 39.1)) + eio(seg(t, 39.5, 39.7)) + eio(seg(t, 40.1, 40.3));
+  var xs = [390, 618, 696, 812], ws = [36, 56, 98, 70];
+  var idx = clamp(slide, 0, 3), i0 = Math.floor(idx), i1 = Math.min(3, i0 + 1), f = idx - i0;
+  Q.nUnder.style.left = lerp(xs[i0], xs[i1], f).toFixed(1) + "px"; Q.nUnder.style.width = lerp(ws[i0], ws[i1], f).toFixed(1) + "px";
+  wingEls.forEach(function (el, i) { el.style.color = (i === [0, 2, 3, 4][Math.round(clamp(slide, 0, 3))]) ? "#3b2f25" : "#8a7b6b"; vis(el, R(el, t, 38.5 + i * 0.05, 0.4, 0), 0); });
+  var dip = 1 - 0.55 * (Math.max(seg(t, 38.9, 39.0) * (1 - seg(t, 39.0, 39.4)), seg(t, 39.5, 39.6) * (1 - seg(t, 39.6, 40.0)), seg(t, 40.1, 40.2) * (1 - seg(t, 40.2, 40.6))));
+  stories.forEach(function (el, i) { vis(el, R(el, t, 38.7 + i * 0.18, 0.45, 12) * dip, 12); });
+  var pics = eo(seg(t, 40.9, 41.5));
+  Q.nTxt.style.color = pics > 0.5 ? "#8a4b2a" : "#3b2f25"; Q.nPic.style.color = pics > 0.5 ? "#3b2f25" : "#8a4b2a";
+  spics.forEach(function (el, i) { var p = eo(seg(t, 40.9 + i * 0.16, 41.4 + i * 0.16)); el.style.opacity = p; el.style.transform = "translateX(" + ((1 - p) * 30) + "px)"; });
+  stories[0].querySelectorAll("h2,p").forEach(function (h) { h.style.width = (pics > 0.5 ? "630px" : "820px"); });
+  var also = stories[0].querySelector(".also"); if (also) also.style.opacity = R(also, t, 41.6, 0.4, 4);
+
+  /* ---- compare and reader ---- */
+  R(Q.cmTitle, t, 42.4, 0.4, 10); R(Q.cmNote, t, 42.7, 0.4, 4); R(Q.cmL, t, 42.9, 0.4, 12); R(Q.cmC, t, 43.2, 0.4, 12); R(Q.cmR, t, 43.5, 0.4, 12);
+  R(Q.rdTitle, t, 44.2, 0.45, 12); vis(Q.rdBtn, R(Q.rdBtn, t, 44.5, 0.4, 6), 6);
+  Q.rdPars.querySelectorAll("p").forEach(function (p, i) { var q = R(p, t, 44.8 + i * 0.3, 0.45, 12); p.style.fontSize = (24 + 3 * eo(seg(t, 45.8, 46.3))) + "px"; });
+  Q.rdListen.textContent = t > 46.6 ? "stop" : "listen";
+  vis(Q.help, RO(Q.help, t, 99, 100, 0.4), 0);
+
+  /* ---- S6: yours ---- */
+  Q.rEng.className = "eng" + (t > 47.5 && t < 50.1 ? " hot" : "");
+  var drop = R(Q.rDrop, t, 47.9, 0.4, 12) * (1 - eo(seg(t, 50.0, 50.3)));
+  vis(Q.rDrop, drop, 12);
+  Q.d4.className = "cb" + (t > 48.6 ? "" : " on");
+  Q.dRegion.textContent = t > 48.9 ? "germany" : "automatic";
+  Q.dTime.textContent = t > 49.3 ? "past week" : "any time";
+  Q.dHide.textContent = typed("pinterest.com", t, 49.4, 49.85);
+  $("dSave").className = "btn" + (t > 49.9 && t < 50.1 ? " press" : "");
+
+  var edit = eo(seg(t, 50.5, 50.9)) * (1 - eo(seg(t, 52.3, 52.6)));
+  vis(Q.hEdit, edit, 14);
+  Q.e1.className = "cb" + (t > 50.95 ? " on" : ""); Q.e2.className = "cb" + (t > 51.15 ? " on" : "");
+  Q.e4.className = "cb" + (t > 51.35 ? " on" : "");
+  Q.eName.textContent = typed("sam", t, 51.0, 51.4);
+  Q.eBack.className = "btn" + (t > 51.7 && t < 51.9 ? " press" : "");
+  Q.eStatus.textContent = t > 51.78 ? "saved nook-backup.json" : "a backup is one small file";
+  Q.eSave.className = "btn" + (t > 52.05 && t < 52.25 ? " press" : "");
+  var showExtras = t > 52.3 && t < 54.1;
+  [["hGreet", 52.4], ["hDate", 52.55], ["hMarks", 52.7], ["hRecent", 52.85], ["hSaved", 53.0], ["hNotes", 53.15]].forEach(function (e) {
+    vis(Q[e[0]], showExtras ? R(Q[e[0]], t, e[1], 0.4, 10) : 0, 10);
+  });
+  /* the keys */
+  var kc = RO(Q.keycaps, t, 52.4, 54.1, 0.3, 14); vis(Q.keycaps, kc * 0.97, 14);
+  Array.prototype.forEach.call(Q.keycaps.children, function (k, i) { var at = 52.65 + i * 0.3; k.className = "key" + (t > at && t < at + 0.2 ? " down" : ""); });
+  vis(Q.help, (t > 53.0 && t < 54.1) ? eo(seg(t, 53.0, 53.4)) : (Q.help.style.opacity === "" ? 0 : (t > 44 && t < 47.8 ? 0 : 0)), 0);
+  if (t > 53.0 && t < 54.1) { Q.help.style.zIndex = 99; Q.reader.style.opacity = 0; }
+
+  /* ---- the cream cards that carry the words ---- */
+  var showing = null, cp = 0;
+  CARDS_T.forEach(function (c) {
+    var p = eo(seg(t, c[0], c[0] + 0.35)) * (1 - eo(seg(t, c[1] - 0.35, c[1])));
+    if (p > cp) { cp = p; showing = c[2]; }
+  });
+  if (showing) $("card").firstChild.textContent = showing;
+  vis(Q.card, cp, 0);
+  $("card").firstChild.style.opacity = cp;
+
+  /* ---- S7: private by design ---- */
+  var dIn = eo(seg(t, 53.8, 54.2)) * (1 - eo(seg(t, 57.7, 58.3)));
+  Q.diagram.style.opacity = dIn; Q.diagram.style.visibility = dIn <= 0.002 ? "hidden" : "visible";
+  var draw = function (id, a, b) { var p = $(id); p.style.strokeDasharray = "1 1"; p.style.strokeDashoffset = (1 - eio(seg(t, a, b))).toFixed(4); };
+  draw("dN1", 54.1, 54.7); draw("dN2", 54.3, 54.9); draw("dN3", 54.5, 55.1); draw("dP1", 54.8, 55.4); draw("dP2", 55.0, 55.6);
+  R($("dL1"), t, 54.4, 0.4, 6); R($("dL2"), t, 54.6, 0.4, 6); R($("dL3"), t, 54.8, 0.4, 6);
+  var route = $("dRoute"), len = route.getTotalLength(), tr = $("dTravel");
+  if (!tr.children.length) {
+    [["pictures", "#8a4b2a"], ["videos", "#6f8f72"], ["articles", "#a47c9a"]].forEach(function (k) {
+      var d = document.createElement("div"); d.style.cssText = "position:absolute;left:0;top:0;white-space:nowrap;font-size:26px;color:" + k[1];
+      d.innerHTML = '<i style="display:inline-block;width:26px;height:26px;border-radius:6px;background:' + k[1] + ';margin-right:10px;vertical-align:-4px"></i>' + k[0]; tr.appendChild(d);
+    });
+  }
+  Array.prototype.forEach.call(tr.children, function (d, i) {
+    var p = ((t - 55.5 - i * 0.55) / 1.9);
+    var q = clamp(p, 0, 1), pt = route.getPointAtLength(len * q);
+    d.style.transform = "translate(" + (pt.x - 60).toFixed(1) + "px," + (pt.y - 74 - 34 * Math.sin(q * Math.PI)).toFixed(1) + "px)";
+    d.style.opacity = p < 0 || p > 1 ? 0 : Math.sin(q * Math.PI);
+  });
+  var lines = $("dLines").children;
+  [[55.2, 56.0], [56.0, 56.8], [56.8, 57.9]].forEach(function (w, i) { vis(lines[i], RO(lines[i], t, w[0], w[1], 0.3, 10), 10); });
+  vis($("dFoot"), R($("dFoot"), t, 57.1, 0.5, 4) * (1 - eo(seg(t, 57.8, 58.3))), 4);
+
+  /* ---- S8: close ---- */
+  var ec = eo(seg(t, 58.9, 59.7));
+  vis(Q.endcard, ec, 10);
+  pages(t);
+  /* things that the page windows must not undo */
+  if (t > 54.1) { Q.home.style.zIndex = 600; }
+  if (t > 57.4) { ["hGreet", "hDate", "hMarks", "hRecent", "hSaved", "hNotes", "hEdit"].forEach(function (k) { vis(Q[k], 0); }); }
+  if (t > 57.4) { Q.hTitle.style.opacity = 1; Q.hSub.style.opacity = 1; Q.hBox.style.opacity = 1; Q.pencilBtn.style.opacity = 1; Q.hFoot.style.opacity = 1; }
+}
+
+/* ===================== sound: all of it made here ===================== */
+var BEAT = 60 / 70;
+var CHORDS = [
+  { pad: [48, 55, 59, 64], mel: [72, 76, 79, 81] }, { pad: [45, 52, 55, 60], mel: [69, 72, 76, 79] },
+  { pad: [41, 48, 52, 57], mel: [69, 72, 76, 77] }, { pad: [43, 50, 53, 59], mel: [67, 71, 74, 76] }
+];
+var EVENTS = [];
+function volume(t) { return t < 1.2 ? 0 : t < 6 ? lerp(0.05, 0.11, seg(t, 1.2, 6)) : t < 14 ? lerp(0.11, 0.15, seg(t, 6, 14)) : t < 50 ? 0.16 : t < 54 ? lerp(0.16, 0.09, seg(t, 50, 54)) : t < 58 ? 0.09 : 0.1; }
+for (var c = 0; c * 4 * BEAT < 58; c++) {
+  var ch = CHORDS[c % 4], t0 = c * 4 * BEAT;
+  ch.pad.forEach(function (n, k) { EVENTS.push({ t: t0, kind: "pad", n: n, d: 4 * BEAT + 1.4, v: volume(t0) * 0.55 }); });
+  [[0, 0], [1, 2], [2.5, 1], [3.25, 3]].forEach(function (m, k) {
+    var tt = t0 + m[0] * BEAT; if (tt > 58) return;
+    var rot = (c + k) % 4; EVENTS.push({ t: tt, kind: "note", n: ch.mel[(m[1] + (c % 2 ? rot : 0)) % 4], d: 2.2, v: volume(tt) * (k === 0 ? 1.15 : 0.8) });
+  });
+}
+TYPES.forEach(function (ty) {
+  var n = ty.s.length; for (var i = 0; i < n; i++) if (ty.s[i] !== " ") EVENTS.push({ t: ty.t0 + (ty.t1 - ty.t0) * (i / n), kind: "click", v: 0.05 });
+});
+[M0 + 0.74, M0 + SLOT + 0.74, M0 + SLOT * 2 + 0.74, M0 + SLOT * 3 + 0.74, M0 + SLOT * 4 + 0.74, M0 + SLOT * 5 + 0.74, M0 + SLOT * 6 + 0.74,
+ 9.0, 9.5, 10.0, 10.5, 30.6, 29.0, 33.7, 35.85, 38.9, 39.5, 40.1, 40.95, 42.2, 44.0, 45.8, 47.9, 48.6, 48.95, 49.35, 49.9, 50.5, 50.95, 51.15, 51.35, 51.7, 52.05,
+ 52.65, 52.95, 53.25, 53.55].forEach(function (tt) { EVENTS.push({ t: tt, kind: "tick", v: 0.05 }); });
+EVENTS.push({ t: 58.4, kind: "chime", v: 0.11 });
+EVENTS.push({ t: 58.3, kind: "pad", n: 48, d: 6, v: 0.07 }, { t: 58.3, kind: "pad", n: 55, d: 6, v: 0.06 }, { t: 58.3, kind: "pad", n: 64, d: 6, v: 0.05 });
+EVENTS.sort(function (a, b) { return a.t - b.t; });
+
+var Sound = {
+  ctx: null, bus: null, muted: false,
+  start: function (from) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!this.ctx) {
+      this.ctx = new AC();
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.9;
+      var comp = this.ctx.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 3;
+      this.master.connect(comp); comp.connect(this.ctx.destination);
+      var len = Math.floor(this.ctx.sampleRate * 0.05), buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      this.noise = buf;
+    }
+    if (this.ctx.state === "suspended") this.ctx.resume();
+    this.stop();
+    var ctx = this.ctx, bus = ctx.createGain(); bus.gain.value = this.muted ? 0 : 1; bus.connect(this.master); this.bus = bus;
+    var base = ctx.currentTime + 0.05 - from, self = this;
+    EVENTS.forEach(function (ev) {
+      if (ev.kind === "pad") { if (ev.t + ev.d < from) return; self.pad(bus, ev, Math.max(ev.t, from) + base, ev.t < from); }
+      else if (ev.t >= from - 0.01) self[ev.kind](bus, ev, ev.t + base);
+    });
+  },
+  stop: function () {
+    if (!this.bus) return;
+    var b = this.bus; this.bus = null;
+    b.gain.setTargetAtTime(0, this.ctx.currentTime, 0.03);
+    setTimeout(function () { try { b.disconnect(); } catch (e) {} }, 400);
+  },
+  mute: function (on) { this.muted = on; if (this.bus) this.bus.gain.setTargetAtTime(on ? 0 : 1, this.ctx.currentTime, 0.03); },
+  hz: function (n) { return 440 * Math.pow(2, (n - 69) / 12); },
+  note: function (bus, ev, at) {
+    var ctx = this.ctx, f = this.hz(ev.n), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 2600; lp.Q.value = 0.4;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(Math.max(ev.v, 0.0002), at + 0.012);
+    g.gain.exponentialRampToValueAtTime(Math.max(ev.v * 0.35, 0.0002), at + 0.35); g.gain.exponentialRampToValueAtTime(0.0001, at + ev.d);
+    var o1 = ctx.createOscillator(); o1.type = "sine"; o1.frequency.value = f;
+    var o2 = ctx.createOscillator(); o2.type = "triangle"; o2.frequency.value = f * 2; var g2 = ctx.createGain(); g2.gain.value = 0.22;
+    var o3 = ctx.createOscillator(); o3.type = "sine"; o3.frequency.value = f * 3.01; var g3 = ctx.createGain(); g3.gain.value = 0.06;
+    o1.connect(g); o2.connect(g2); g2.connect(g); o3.connect(g3); g3.connect(g); g.connect(lp); lp.connect(bus);
+    [o1, o2, o3].forEach(function (o) { o.start(at); o.stop(at + ev.d + 0.1); });
+  },
+  pad: function (bus, ev, at, late) {
+    var ctx = this.ctx, f = this.hz(ev.n), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+    lp.type = "lowpass"; lp.frequency.value = 560;
+    var atk = late ? 0.05 : 1.3, dur = Math.max(0.2, ev.d - (late ? at - 0 : 0));
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(Math.max(ev.v, 0.0002), at + atk);
+    g.gain.setValueAtTime(Math.max(ev.v, 0.0002), at + Math.max(atk, dur - 1.6)); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    [-5, 5].forEach(function (cents) {
+      var o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = f; o.detune.value = cents; o.connect(g); o.start(at); o.stop(at + dur + 0.1);
+    });
+    g.connect(lp); lp.connect(bus);
+  },
+  click: function (bus, ev, at) {
+    var ctx = this.ctx, s = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = this.noise; bp.type = "bandpass"; bp.frequency.value = 1900 + Math.random() * 900; bp.Q.value = 0.9; g.gain.value = ev.v * 2.4;
+    s.connect(bp); bp.connect(g); g.connect(bus); s.start(at);
+  },
+  tick: function (bus, ev, at) {
+    var ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(760, at); o.frequency.exponentialRampToValueAtTime(520, at + 0.05);
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(ev.v, at + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.09);
+    o.connect(g); g.connect(bus); o.start(at); o.stop(at + 0.12);
+    this.click(bus, { v: ev.v * 0.8 }, at);
+  },
+  chime: function (bus, ev, at) {
+    var ctx = this.ctx;
+    [[784, 1], [1176, 0.45], [1568, 0.28], [2352, 0.12]].forEach(function (p) {
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.type = "sine"; o.frequency.value = p[0];
+      g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(ev.v * p[1], at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + 3.4);
+      o.connect(g); g.connect(bus); o.start(at); o.stop(at + 3.5);
+    });
+  }
+};
+
+/* ===================== the player ===================== */
+var params = new URLSearchParams(location.search);
+var T = parseFloat(params.get("t")) || 0;
+var still = params.get("still") === "1";
+var playing = false, last = 0, hudUntil = 0, ended = false;
+
+function fit() {
+  var w = innerWidth, h = innerHeight, s = Math.min(w / 1920, h / 1080);
+  Q.stage.style.transform = "translate(" + ((w - 1920 * s) / 2) + "px," + ((h - 1080 * s) / 2) + "px) scale(" + s + ")";
+}
+addEventListener("resize", fit); fit();
+
+function hud(text) { Q.hud.textContent = text; Q.hud.style.opacity = 0.75; hudUntil = performance.now() + 2200; }
+function play() {
+  if (T >= DURATION - 0.05) T = 0;
+  playing = true; last = performance.now(); Sound.start(T); ended = false;
+}
+function pause() { playing = false; Sound.stop(); hud("paused · space to play · r restart · ← → seek · m mute · f full screen"); }
+function seek(to) { T = clamp(to, 0, DURATION); if (playing) Sound.start(T); render(T); }
+
+function loop(now) {
+  if (playing) {
+    var dt = Math.min(0.1, (now - last) / 1000); last = now; T += dt;
+    if (T >= DURATION) { T = DURATION; playing = false; ended = true; Sound.stop(); hud("the end · r to watch again"); }
+  }
+  try { render(T); } catch (e) { $("err").textContent = e.stack || String(e); }
+  if (hudUntil && now > hudUntil) { Q.hud.style.opacity = 0; hudUntil = 0; }
+  requestAnimationFrame(loop);
+}
+
+Q.start.addEventListener("click", function () { Q.start.style.display = "none"; play(); });
+addEventListener("keydown", function (e) {
+  if (Q.start.style.display !== "none" && !still) { if (e.key === " " || e.key === "Enter") { Q.start.style.display = "none"; play(); e.preventDefault(); } return; }
+  if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
+  else if (e.key === "r" || e.key === "R") { T = 0; play(); }
+  else if (e.key === "ArrowRight") seek(T + 5);
+  else if (e.key === "ArrowLeft") seek(T - 5);
+  else if (e.key === "m" || e.key === "M") { Sound.mute(!Sound.muted); hud(Sound.muted ? "muted" : "sound on"); }
+  else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
+});
+if (still) { Q.start.style.display = "none"; Q.hud.style.display = "none"; }
+render(T);
+requestAnimationFrame(loop);
+window.__film = { render: render, setT: function (t) { T = t; render(t); } };
+})();
+</script>
+</body>
+</html>

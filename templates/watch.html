@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ title or "video" }} - nook{% endblock %}
+{% block body %}
+<p class="note"><a href="/">nook</a>{% if q %} &middot; <a href="/search?q={{ q | urlencode }}&amp;t=videos">back to {{ q }}</a>{% endif %}</p>
+<div class="player" data-kind="{{ kind }}" data-source="{{ source }}">
+  <div class="stage">
+    <div class="screen"></div>
+    {% if poster %}<img class="poster" src="{{ px(poster) }}" alt="">{% endif %}
+    <div class="veil"><span>play</span></div>
+  </div>
+  <div class="controls">
+    <button class="pp" type="button">play</button>
+    <span class="time">0:00 / 0:00</span>
+    <input class="seek" type="range" min="0" max="1000" value="0" aria-label="seek">
+    <button class="mute" type="button">sound</button>
+    <input class="vol" type="range" min="0" max="100" value="80" aria-label="volume">
+    <button class="full" type="button">full</button>
+  </div>
+  <p class="oops" hidden>this one won't play here. <a href="{{ url }}" rel="noreferrer">open it at the source</a></p>
+</div>
+<h1 class="clip-title">{{ title }}</h1>
+<p class="note"><a href="{{ url }}" rel="noreferrer">source</a> &middot; space plays, arrows seek, m mutes, f goes full</p>
+<p class="note">nothing is sent to {{ "youtube" if kind == "youtube" else "the video's host" }} until you press play.</p>
+<noscript><p class="note">the player needs javascript. <a href="{{ url }}">open the source</a>.</p></noscript>
+<script src="{{ url_for('static', filename='player.js') }}"></script>
+{% endblock %}

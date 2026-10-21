@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}how it was told - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <a href="/news?w={{ wing }}">news</a> <span>compare</span></p>
+
+<h1 class="cmp-title">{{ lead.title }}</h1>
+<p class="note">{{ count }} outlet{{ "" if count == 1 else "s" }} in nook's feeds ran this, from the far left to the far right. read the same story through each and see what each one put first.</p>
+
+{% for w, stories in groups %}
+<section class="cmp-wing">
+  <h2>{{ w | replace("-", " ") }}</h2>
+  {% for t in stories %}
+  <article class="story">
+    <div class="body">
+      <h3><a href="{{ rd(t.url, wing) }}">{{ t.title }}</a></h3>
+      <div class="via">{{ t.source }}{% if t.when %} &middot; {{ t.when | ago }}{% endif %}</div>
+      {% if t.summary %}<p>{{ t.summary }}</p>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endfor %}
+
+{% if missing %}<p class="note">nobody in the feeds ran it on the {{ missing | map("replace", "-", " ") | join(", ") }}.</p>{% endif %}
+{% endblock %}
