@@ -115,6 +115,9 @@ Which wing an outlet sits in is my rough reading of public media-bias ratings, s
 - The server still talks to the engines and feeds, so on a shared instance the server's operator sees searches. Nothing is stored or logged.
 - If you run it for others, set `secret` in `config.toml` (any long random string) so picture links stay valid across restarts.
 
+## Running it on a host with no disk (Vercel and similar)
+Set two environment variables instead of editing files: `NOOK_SECRET` (any long random string) and, if you want Wikipedia, `NOOK_CONTACT` (an email or site). Without `NOOK_SECRET` each cold start makes a new secret, and picture, reader and compare links made by one instance stop working on another. Things to know on such hosts: memory (caches, rate limits, engine "rest" times) is per instance and disappears when it sleeps, the background news refresh does not run (news is fetched when someone opens it), and shared host addresses are sometimes turned away by the engines, so check `/status` now and then.
+
 ## Settings
 Everything is in `config.toml`: which engines, timeout, port, cache time, rate limit.
 To let others reach it, set `host = "0.0.0.0"` and put it behind a reverse proxy with HTTPS.

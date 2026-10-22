@@ -250,3 +250,8 @@ def test_the_reader_shows_progress_and_answers_can_be_copied():
 def test_the_footer_is_small(client):
     footer = page(client, "/about").split("<footer>")[1]
     assert footer.count("<a ") == 3 and "nothing is logged" in footer
+
+
+def test_a_host_without_a_disk_can_set_the_secret_and_contact_in_the_environment(monkeypatch):
+    monkeypatch.setenv("NOOK_SECRET", "from-the-environment")
+    assert nook.load_secret() == "from-the-environment"

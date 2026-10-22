@@ -44,6 +44,8 @@ from engines import bing_images, duckduckgo_videos, wikipedia
 
 ROOT = Path(__file__).parent
 config = tomllib.loads((ROOT / "config.toml").read_text(encoding="utf-8"))
+if os.environ.get("NOOK_CONTACT"):
+    config["contact"] = os.environ["NOOK_CONTACT"]
 active = engines.load(config["engines"])
 wikipedia.CONTACT = config.get("contact", "")
 wiki.CONTACT = config.get("contact", "")
@@ -56,6 +58,8 @@ if wikipedia in active and not wikipedia.CONTACT:
 
 def load_secret():
     """Signs picture and reader links. Made once and kept in .secret so links survive restarts."""
+    if os.environ.get("NOOK_SECRET"):   # hosts with no writable disk (Vercel and the like) set it here
+        return os.environ["NOOK_SECRET"]
     if config.get("secret"):
         return config["secret"]
     path = ROOT / ".secret"
