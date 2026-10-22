@@ -66,3 +66,14 @@
 .places .where { display: block; color: var(--soft); font-size: .85rem; }
 .places li.on a .name { color: var(--link); }
 .places li.on a .name::before { content: "\2022\00a0"; }
+
+/* the vector map: no tint, the style itself is the look */
+.nmap.vector { background: var(--bg); }
+.nmap.vector::after { display: none; }
+.nmap.vector .tiles { position: absolute; inset: 0; }
+.nmap.vector .maplibregl-canvas { outline: none; }
+.nmap.vector .pin { position: absolute; left: 0; top: 0; width: 1rem; height: 1rem; border-radius: 50%; background: var(--link);
+  border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.nmap.vector .pin.on { width: 1.35rem; height: 1.35rem; background: #ff3b30; }
+.nmap.vector a.pin:hover { background: var(--text); }
+.nmap.vector .ctl button, .nmap.vector .credit .info { background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }

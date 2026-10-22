@@ -62,6 +62,23 @@ Tiles are fetched by nook and remembered for a week, so your browser never talks
 - **Share.** "share" copies a link to the search with your region, engines, safe search and time filter in it, so the other person sees what you see. The settings travel in the link and are not saved in their browser.
 - **Your own feeds.** On the news page, a **mine** wing: add the address of any RSS or Atom feed (a blog, a subreddit's `.rss`, a YouTube channel feed). Up to six, kept in a cookie; nook fetches them, and only public addresses are accepted.
 
+## For developers and tinkerers
+- **Package cards.** `npm react`, `pip install httpx`, `cargo add tokio`: latest version, summary, licence, the install line (with a copy button) and the repository.
+- **Networks.** `dns example.com`, `dig github.com mx`, `whois github.com`, `192.168.1.0/24 range` (subnet maths is worked out here; DNS answers come from Cloudflare's public resolver and registration details from RDAP, and only the domain is sent).
+- **More units.** Speeds (`60 mph in km/h`), pressure (`15 psi in bar`), area (`1 acre in m2`), data rates (`100 mbps in mb/s`), energy (`500 kcal in kj`).
+- **Every bang.** `!name words` for a bang nook doesn't know goes to DuckDuckGo, which knows thousands. Typing a bare address (`reddit.com`) offers a jump straight there.
+- **A terminal.** `curl "https://your-nook/cli?q=sourdough+starter"` returns plain text. Settings can travel in the link too (`&eng=bing.yahoo&reg=de-de`), so scripts and text browsers need no cookies.
+
+## Safety on a shared instance
+- Pictures, the reader and your own feeds only fetch **public** addresses. The address is checked before the request, and again when the connection is made: nook connects to the very address it checked, so a name that answers differently the second time (DNS rebinding) cannot lead to the host's own network or a cloud metadata address. Odd spellings (`0.0.0.0`, `::ffff:127.0.0.1`, `127.1`, `2130706433`) are refused too.
+- Picture links are signed and each visitor has a request limit and a bytes-per-minute budget (`picture_mb_per_minute`, default 60), so an instance can't be used as a free download service.
+- One slow engine does not hold a page: once two engines have answered, the rest get 1.5 more seconds. A late engine is not counted as broken.
+- What is shared between visitors on one instance is only what is public anyway: the results of a search are remembered in memory for a few minutes and cards for up to an hour, keyed by the search words and the settings in the request. Nothing is tied to a person, and it is all gone on restart. (Someone could in theory tell, from how fast a page loads, that a search was made in the last few minutes; there is nothing in the cache to read.)
+
+## Dates, and your own styles
+- **Date operators.** `before:2020`, `after:2023-05`, `during:2021`, and combinations (`climate after:2024-01 before:2024-07`). They are taken out of the words and turned into a date range. Only DuckDuckGo can apply an exact range (Bing and Yahoo ignore it), so only DuckDuckGo is asked and the page says so; if you have switched DuckDuckGo off, the operator is dropped rather than sent as plain words. `before:2020` means up to the end of 2019; `after:2023-05` includes 1 May 2023.
+- **Your own styles.** The pencil on the home page has a box for your own CSS. nook is drawn with five colours (`--bg --text --soft --link --line`), so `:root { --bg: #fffdf8; --link: #b04a2a; }` already restyles everything, and any other rule works too. It is kept only in this browser (and comes along in a backup) and applied before the page is drawn, as a stylesheet built by script: the strict content policy stays as it is, and nothing is loaded from anywhere.
+
 ## Quiet touches
 - **It appears at once.** The search box and tabs are sent immediately and the results fill in when the engines answer (a small "asking the engines" line goes away by itself). A remembered search is one piece, as before. Under a result, the seconds the engines took are shown next to "answered by".
 - **Quieter results.** Each result shows its address as a trail (`en.wikipedia.org › wiki › Bonn`), a small label when it is a pdf, a video or a forum, and a thumbnail for YouTube links. Under it only the engines and "read" show; **more** opens the rest: save, peek, hide site, **favour site** (show it first from now on), more from this site, an archived copy, copy link. `s` still saves the result you are on.

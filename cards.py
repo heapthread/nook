@@ -17,6 +17,9 @@ import facts
 import figures
 import history
 import places
+import nearby
+import netinfo
+import packages
 import plot
 import routes
 import texttools
@@ -97,6 +100,9 @@ def local(query, now=None):
     seconds = _timer_seconds(q)
     if seconds:
         return {"kind": "timer", "seconds": seconds}
+    site = re.fullmatch(r"(?:https?://)?(?:www\.)?((?:[a-z0-9][a-z0-9-]*\.)+(?:com|org|net|io|dev|app|ai|co|uk|de|fr|nl|eu|info|me|tv|gg|xyz|edu|gov|ch|at|se|no|dk|fi|es|it|ru|jp|cn|in|br|ca|au|nz|wiki|news|blog|tech|cloud))(/\S*)?", q)
+    if site:
+        return {"kind": "jump", "host": site.group(1), "url": f"https://{site.group(1)}{site.group(2) or ''}"}
     if q in ("pomodoro", "pomodoro timer", "start pomodoro"):
         return {"kind": "timer", "seconds": 25 * 60}
     if q in ("stopwatch", "online stopwatch", "start stopwatch", "stop watch"):
@@ -115,7 +121,7 @@ def local(query, now=None):
         lo, hi = sorted((int(m.group(1)), int(m.group(2))))
         if hi - lo < 10 ** 12:
             return {"kind": "dice", "big": str(random.randint(lo, hi)), "small": f"a number from {lo} to {hi}"}
-    return (plot.answer(query) or figures.answer(query) or texttools.answer(query) or dates.answer(query, now=now)
+    return (plot.answer(query) or figures.answer(query) or netinfo.local(query) or texttools.answer(query) or dates.answer(query, now=now)
             or devtools.answer(query, now) or places.answer(query, now))
 
 
@@ -385,7 +391,7 @@ async def lookup(client, query, with_knowledge=True, lang="en"):
     said = await translate.lookup(client, query)
     if said:
         return said
-    for module in (routes, earth, history):
+    for module in (routes, earth, history, packages, netinfo, nearby):
         card = await module.lookup(client, query)
         if card:
             return card

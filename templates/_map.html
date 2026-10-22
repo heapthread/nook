@@ -5,7 +5,7 @@
   <div class="tiles"></div>
   <div class="pins"></div>
   <div class="ctl"><button type="button" data-z="1" aria-label="zoom in">+</button><button type="button" data-z="-1" aria-label="zoom out">&minus;</button></div>
-  <div class="credit"><button type="button" class="info" aria-label="map credit" title="map credit" aria-expanded="true">i</button><span class="text">&copy; <a href="{{ map_credit_url }}" rel="noreferrer">{{ map_credit | replace("© ", "") }}</a></span></div>
+  <div class="credit"><button type="button" class="info" aria-label="map credit" title="map credit" aria-expanded="true">i</button><span class="text">&copy; <a href="{{ map_credit_url }}" rel="noreferrer">{{ map_credit | replace("© ", "") }}</a> &middot; <a href="https://openfreemap.org" rel="noreferrer">OpenFreeMap</a> &middot; <a href="https://openmaptiles.org" rel="noreferrer">OpenMapTiles</a></span></div>
 </div>
 <noscript><p class="map-credit-static">{{ map_credit }}</p></noscript>
 <script src="{{ url_for('static', filename='map.js') }}"></script>

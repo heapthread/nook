@@ -11,6 +11,7 @@ import socket
 import time
 from urllib.parse import quote, urljoin, urlparse
 
+import httpcore
 import httpx
 
 MAX_IMAGE = 12 * 1024 * 1024
@@ -93,9 +94,37 @@ class Refused(Exception):
     pass
 
 
+def public_address(host, port):
+    """A public address for `host`, looked up right now. Refuses a name with any non-public address."""
+    try:
+        found = {a[4][0] for a in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)}
+    except OSError as e:
+        raise httpcore.ConnectError(f"cannot find {host}") from e
+    if not found or not all(ipaddress.ip_address(a).is_global for a in found):
+        raise httpcore.ConnectError("not a public address")
+    return sorted(found)[0]
+
+
+class _Pinned(httpcore.SyncBackend):
+    """Connects to the very address it checked, so a name that answers differently the second time
+    (DNS rebinding) cannot lead inside. The check in is_public() is a quick no; this is the lock."""
+
+    def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        return super().connect_tcp(public_address(host, port), port, timeout=timeout,
+                                   local_address=local_address, socket_options=socket_options)
+
+
+class PinnedTransport(httpx.HTTPTransport):
+    def __init__(self):
+        super().__init__(http2=True)
+        self._pool.close()
+        self._pool = httpcore.ConnectionPool(ssl_context=httpx.create_ssl_context(), http2=True, max_connections=20,
+                                             max_keepalive_connections=5, keepalive_expiry=5.0, network_backend=_Pinned())
+
+
 def _get(url, headers, accept, limit):
     """Returns (bytes, content type, charset). Raises Refused for anything we won't pass on."""
-    with httpx.Client(headers=headers, timeout=8, follow_redirects=False, http2=True) as client:  # some hosts (Wikimedia, Yahoo) only answer HTTP/2
+    with httpx.Client(headers=headers, timeout=8, follow_redirects=False, transport=PinnedTransport()) as client:  # HTTP/2: some hosts (Wikimedia, Yahoo) need it
         for _ in range(MAX_REDIRECTS + 1):
             if not is_public(url):
                 raise Refused("not a public address")

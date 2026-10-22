@@ -197,10 +197,12 @@ def test_every_example_is_something_nook_answers():
     import answers
     import places
     import me
+    import netinfo
+    import packages
     import routes
     import earth
     import history
-    skipped = ("narrow it down", "anything on wikipedia", "weather", "time anywhere", "money", "definitions", "facts", "prices")
+    skipped = ("by date", "narrow it down", "anything on wikipedia", "weather", "time anywhere", "money", "definitions", "facts", "prices")
     for _, items in tools.CATALOG:
         for title, examples in items:
             if title in skipped:
@@ -209,7 +211,7 @@ def test_every_example_is_something_nook_answers():
                 handled = (cards.local(example) or answers.answer(example) or translate.parse(example)
                            or wordtools.parse(example) or facts.parse(example)
                            or routes.parse(example) or earth.parse(example) or history.parse(example)
-                           or me.answer(example, "1.2.3.4", "UA"))
+                           or me.answer(example, "1.2.3.4", "UA") or packages.parse(example) or netinfo.parse(example))
                 assert handled, f"{title}: {example}"
     assert weather.place_in("weather in bonn") and facts.parse("capital of peru") and cards.define_word("define serendipity")
 

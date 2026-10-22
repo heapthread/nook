@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ b.title }} - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <a href="/books">books</a>{% if q %} <a href="/books?q={{ q | urlencode }}">{{ q }}</a>{% endif %}</p>
+<article class="bookpage">
+  {% if pics_on and b.cover %}<img class="bigcover" src="{{ px(b.cover) }}" alt="">{% endif %}
+  <div class="info">
+    <h1>{{ b.title }}</h1>
+    {% if b.subtitle %}<p class="sub2">{{ b.subtitle }}</p>{% endif %}
+    {% if b.authors %}<p class="who">by {{ b.authors }}</p>{% endif %}
+    <p class="meta">{% if b.first %}first published {{ b.first }}{% endif %}{% if b.rating %}{% if b.first %} &middot; {% endif %}{{ b.rating }} / 5 from {{ b.votes }} readers{% endif %}</p>
+    {% if b.description %}<p>{{ b.description }}</p>{% endif %}
+    {% if b.subjects %}<p class="subjects">{% for s in b.subjects %}<a href="/books?q={{ s | urlencode }}">{{ s }}</a>{{ " " }}{% endfor %}</p>{% endif %}
+    <p class="actions">
+      <a class="btn" href="/search?q={{ reviews | urlencode }}">find reviews</a>
+      <a class="btn" href="https://openlibrary.org/works/{{ b.id }}" rel="noreferrer">borrow or read on Open Library</a>
+    </p>
+    <p class="note">ratings come from Open Library readers. nook doesn't have written reviews, and doesn't invent any: &ldquo;find reviews&rdquo; searches the web for them.</p>
+  </div>
+</article>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}convert - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>convert</span></p>
+<nav class="tabs" aria-label="what to convert">
+  {% for key, label in (("money", "money"), ("units", "units"), ("time", "time")) %}{% if key == mode %}<span>{{ label }}</span>{% else %}<a href="/convert?m={{ key }}">{{ label }}</a>{% endif %}{% endfor %}
+</nav>
+
+{% if mode == "money" %}
+<form class="convertform" action="/convert" method="get">
+  <input type="hidden" name="m" value="money">
+  <input type="text" name="v" value="{{ '%g' | format(amount) }}" inputmode="decimal" aria-label="amount">
+  <select name="from" aria-label="currency">{% for c in currencies %}<option{% if c == source %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  <button type="submit">convert</button>
+</form>
+{% if result %}
+<div class="rates">{% for code, text in result[0] %}<div{% if code == source %} class="me"{% endif %}><span class="c">{{ code }}</span><span class="v">{{ text }}</span></div>{% endfor %}</div>
+<p class="note">{{ result[1] }}.</p>
+{% else %}<p class="empty">couldn't get the rates just now. try again in a moment.</p>{% endif %}
+
+{% elif mode == "units" %}
+<form class="convertform" action="/convert" method="get">
+  <input type="hidden" name="m" value="units">
+  <select name="k" aria-label="what kind" class="kind">{% for k in kinds %}<option{% if k == kind %} selected{% endif %}>{{ k }}</option>{% endfor %}</select>
+  <input type="text" name="v" value="{{ '%g' | format(amount) }}" inputmode="decimal" aria-label="amount">
+  <select name="from" aria-label="unit">{% for u in units[kind] %}<option value="{{ u }}"{% if u == source %} selected{% endif %}>{{ name(u) }}</option>{% endfor %}</select>
+  <button type="submit">convert</button>
+</form>
+{% if rows %}
+<div class="rates">{% for u, label, text in rows %}<div{% if u == source %} class="me"{% endif %}><span class="c">{{ label }}</span><span class="v">{{ text }}</span></div>{% endfor %}</div>
+{% endif %}
+<p class="note">change the kind, then press convert to see its units.</p>
+
+{% else %}
+<form class="convertform" action="/convert" method="get">
+  <input type="hidden" name="m" value="time">
+  <input type="text" name="at" value="{{ at }}" placeholder="now, or 3pm" aria-label="time" size="8">
+  <input type="search" name="a" value="{{ a }}" placeholder="in (a city)" aria-label="from place">
+  <input type="search" name="b" value="{{ b }}" placeholder="to (a city)" aria-label="to place">
+  <button type="submit">convert</button>
+</form>
+{% if card %}
+<section class="card small zones">
+  {% for side, size in ((card.first, "from"), (card.second, "to")) %}
+  <div class="row {{ size }}"><span class="t">{{ side.clock }}</span><span class="p">{{ side.place }}<span class="z">{{ side.zone }}</span></span></div>
+  {% endfor %}
+  <p class="src">{{ card.note }}</p>
+</section>
+{% elif asked %}<p class="empty">couldn't work that out. try two cities, like bonn and tokyo.</p>
+{% else %}<p class="note">the time in one place when it is a given time in another: leave the time empty for right now.</p>{% endif %}
+{% endif %}
+{% endblock %}

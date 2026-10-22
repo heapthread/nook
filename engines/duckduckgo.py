@@ -7,6 +7,7 @@ from . import Result
 NAME = "duckduckgo"
 SUPPORTS_TIME = {"d", "w", "m", "y"}  # past day, week, month, year
 SUPPORTS_SAFE = True
+SUPPORTS_RANGE = True   # df=2020-01-01..2020-12-31
 SAFE = {"strict": "1", "off": "-2"}  # its kp setting; moderate is what it does when told nothing
 
 
@@ -47,9 +48,11 @@ def next_form(text):
     return None
 
 
-async def search(client, query, page=1, period=None, region=None, safe=None):
+async def search(client, query, page=1, period=None, region=None, safe=None, date_range=None):
     data = {"q": query}
-    if period in SUPPORTS_TIME:
+    if date_range:
+        data["df"] = f"{date_range[0]}..{date_range[1]}"
+    elif period in SUPPORTS_TIME:
         data["df"] = period
     if region:
         data["kl"] = region

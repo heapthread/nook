@@ -92,7 +92,7 @@ def test_empty_later_pages_are_not_failures():
 def test_bangs():
     assert answers.bang_target("!w sourdough bread") == "https://en.wikipedia.org/wiki/Special:Search?search=sourdough%20bread"
     assert answers.bang_target("sourdough !yt").startswith("https://www.youtube.com/results?search_query=sourdough")
-    assert answers.bang_target("!nope x") is None and answers.bang_target("!w") is None
+    assert answers.bang_target("!nope x") == "https://duckduckgo.com/?q=%21nope%20x" and answers.bang_target("!w") is None   # a bang we do not know goes to DuckDuckGo
     assert answers.bang_target("!arch pacman", {"arch": "https://wiki.archlinux.org/?search={}"}).endswith("search=pacman")
     assert answers.bang_target("!x y", {"x": "javascript:alert({})"}) is None  # only https templates
 

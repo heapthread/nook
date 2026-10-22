@@ -166,6 +166,7 @@
     editor.elements.daily.checked = data.daily;
     editor.elements.name.value = data.name;
     editor.elements.marks.value = data.marks;
+    try { editor.elements.css.value = localStorage.getItem("nook.css") || ""; } catch (e) {}
   }
 
   var data = load();
@@ -184,6 +185,10 @@
       notes: editor.elements.notes.checked, daily: editor.elements.daily.checked
     };
     write(KEY, data);
+    var css = editor.elements.css.value.slice(0, 20000), before = "";
+    try { before = localStorage.getItem("nook.css") || ""; } catch (e) {}
+    try { if (css.trim()) localStorage.setItem("nook.css", css); else localStorage.removeItem("nook.css"); } catch (e) {}
+    if (css.trim() !== before.trim()) { location.reload(); return; }   // the new styles show straight away
     render(data);
     editor.hidden = true;
     pencil.classList.remove("open");

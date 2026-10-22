@@ -115,7 +115,7 @@ def _worked(name):
     resting.pop(name, None)
 
 
-async def _attempt(engine, client, query, page, period=None, region=None, safe=None):
+async def _attempt(engine, client, query, page, period=None, region=None, safe=None, date_range=None):
     """One engine, with one quick second try if it failed for a reason other than being slow."""
     for attempt in (1, 2):
         try:
@@ -126,6 +126,8 @@ async def _attempt(engine, client, query, page, period=None, region=None, safe=N
                 options["region"] = region
             if safe and getattr(engine, "SUPPORTS_SAFE", False):
                 options["safe"] = safe
+            if date_range and getattr(engine, "SUPPORTS_RANGE", False):
+                options["date_range"] = date_range
             results = await engine.search(client, query, page, **options)
         except (httpx.TimeoutException, asyncio.TimeoutError):
             break  # slow: a retry would only make the page slower
@@ -140,12 +142,33 @@ async def _attempt(engine, client, query, page, period=None, region=None, safe=N
     return None
 
 
-async def gather(client, engines, query, page=1, period=None, region=None, safe=None):
-    """Ask every engine at once. Returns (merged results, names that failed or are resting)."""
+GRACE = 1.5   # seconds the rest get to answer once two engines have
+
+
+async def gather(client, engines, query, page=1, period=None, region=None, safe=None, date_range=None):
+    """Ask every engine at once. Returns (merged results, names that failed, are resting or were too slow).
+
+    Once two engines have answered, the others get GRACE more seconds: one slow engine does not
+    hold the whole page. Such an engine is not counted as having failed."""
     asking = [e for e in engines if not is_resting(e.NAME)]
-    outcomes = await asyncio.gather(*(_attempt(e, client, query, page, period, region, safe) for e in asking))
+    tasks = {asyncio.ensure_future(_attempt(e, client, query, page, period, region, safe, date_range)): e for e in asking}
+    outcomes, pending, deadline = {}, set(tasks), None
+    loop = asyncio.get_running_loop()
+    while pending:
+        wait = None if deadline is None else max(0.0, deadline - loop.time())
+        done, pending = await asyncio.wait(pending, timeout=wait, return_when=asyncio.FIRST_COMPLETED)
+        if not done:
+            break
+        for task in done:
+            outcomes[tasks[task]] = task.result()
+        if deadline is None and len(asking) > 2 and sum(1 for o in outcomes.values() if o) >= 2:
+            deadline = loop.time() + GRACE
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
     ok, failed = [], [e.NAME for e in engines if e not in asking]
-    for engine, outcome in zip(asking, outcomes):
+    for engine in asking:
+        outcome = outcomes.get(engine)
         if outcome is None:
             failed.append(engine.NAME)
         elif outcome:

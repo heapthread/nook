@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_map.html" import nmap %}
+{% block title %}{{ place.name }} - nook{% endblock %}
+{% block wide %}full{% endblock %}
+{% block body %}
+<div class="fullmap">
+  <aside class="panel">
+    <p class="back"><a href="/">nook</a>{% if q %} &middot; <a href="/search?q={{ q | urlencode }}">back to {{ q }}</a>{% endif %}</p>
+    {% if pics_on and place.image %}<img class="hero" src="{{ px(place.image) }}" alt="" loading="lazy">{% endif %}
+    <h1>{{ place.name }}</h1>
+    <p class="kind">{{ place.kind }}{% if place.cuisine %} &middot; {{ place.cuisine }}{% endif %}</p>
+
+    <dl class="info">
+      {% if place.address %}<div><dt>address</dt><dd>{{ place.address }}</dd></div>{% endif %}
+      {% if place.hours %}<div><dt>hours</dt><dd>{{ place.hours }}</dd></div>{% endif %}
+      {% if place.phone %}<div><dt>phone</dt><dd><a href="tel:{{ place.phone | replace(' ', '') }}">{{ place.phone }}</a></dd></div>{% endif %}
+      {% if place.website %}<div><dt>website</dt><dd><a href="{{ place.website }}" rel="noreferrer">{{ place.website | host }}</a></dd></div>{% endif %}
+      {% if place.wheelchair %}<div><dt>wheelchair</dt><dd>{{ place.wheelchair }}</dd></div>{% endif %}
+    </dl>
+    <p class="actions">
+      <a class="btn" href="/travel?to={{ (place.name ~ ', ' ~ place.address) | urlencode }}">directions</a>
+      <a class="btn" href="/search?q={{ reviews | urlencode }}">find reviews</a>
+    </p>
+    <p class="note">reviews and ratings aren't part of OpenStreetMap, and nook doesn't invent any. &ldquo;find reviews&rdquo; searches the web for them. if something here is wrong or missing, anyone can fix it on <a href="{{ osm }}" rel="noreferrer">openstreetmap.org</a>, and nook shows the change soon after.</p>
+  </aside>
+  {{ nmap(place.lat, place.lon, 17, [{"lat": place.lat, "lon": place.lon, "label": place.name, "on": True}], big=True) }}
+</div>
+{% endblock %}

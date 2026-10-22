@@ -93,6 +93,30 @@ def parse(data):
     return out[:6]
 
 
+_raw = {}   # (endpoint, params) -> (when, answer)
+
+
+def nominatim(endpoint, params):
+    """A raw Nominatim answer (a list), for the places pages. One question a second at most, remembered for an hour."""
+    key = (endpoint, tuple(sorted((k, str(v)) for k, v in params.items())))
+    hit = _raw.get(key)
+    if hit and time.monotonic() - hit[0] < KEEP_PLACES:
+        return hit[1]
+    with _gate:
+        wait = 1.05 - (time.monotonic() - _last[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last[0] = time.monotonic()
+        r = httpx.get(f"https://nominatim.openstreetmap.org/{endpoint}", params={**params, "format": "jsonv2"},
+                      headers=headers(), timeout=10)
+    r.raise_for_status()
+    data = r.json()
+    if len(_raw) > 300:
+        _raw.clear()
+    _raw[key] = (time.monotonic(), data)
+    return data
+
+
 def search(query, language="en"):
     """Places called `query`, remembered for an hour. Raises httpx.HTTPError when OpenStreetMap is unreachable."""
     key = (re.sub(r"\s+", " ", query.strip().lower()), language)

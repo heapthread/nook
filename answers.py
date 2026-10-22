@@ -33,6 +33,7 @@ def bang_target(query, extra=None):
     """`!w sourdough` or `sourdough !w` gives the address to send the visitor to, else None."""
     table = {**BANGS, **{k.lower(): v for k, v in (extra or {}).items()}}
     m = re.match(r"^!(\w+)\s+(.+)$", query.strip())
+    leading = bool(m)
     if m:
         name, rest = m.group(1), m.group(2)
     else:
@@ -41,7 +42,11 @@ def bang_target(query, extra=None):
             return None
         rest, name = m.group(1), m.group(2)
     template = table.get(name.lower())
-    if not template or not template.startswith("https://") or "{}" not in template:
+    if template is None:
+        if leading and re.fullmatch(r"[a-z0-9]{1,15}", name.lower()):   # not one of ours: DuckDuckGo knows thousands
+            return "https://duckduckgo.com/?q=" + quote(f"!{name} {rest.strip()}", safe="")
+        return None
+    if not template.startswith("https://") or "{}" not in template:
         return None
     return template.replace("{}", quote(rest.strip(), safe=""))
 
@@ -103,7 +108,14 @@ _UNITS = {
     "volume": {"ml": 0.001, "l": 1, "tsp": 0.00492892159375, "tbsp": 0.01478676478125,
                "floz": 0.0295735295625, "cup": 0.2365882365, "pt": 0.473176473,
                "qt": 0.946352946, "gal": 3.785411784},
-    "speed": {"ms": 1, "kph": 1 / 3.6, "mph": 0.44704, "kn": 1852 / 3600},
+    "speed": {"ms": 1, "kph": 1 / 3.6, "mph": 0.44704, "kn": 1852 / 3600, "fps": 0.3048},
+    "pressure": {"pa": 1, "hpa": 100, "kpa": 1000, "mbar": 100, "bar": 100000, "psi": 6894.757293168,
+                 "atm": 101325, "mmhg": 133.322387415, "inhg": 3386.389},
+    "area": {"mm2": 1e-6, "cm2": 1e-4, "m2": 1, "km2": 1e6, "ha": 1e4, "in2": 0.00064516, "ft2": 0.09290304,
+             "yd2": 0.83612736, "acre": 4046.8564224, "mi2": 2589988.110336},
+    "datarate": {"bps": 0.125, "kbps": 125, "mbps": 125000, "gbps": 125000000, "b/s": 1, "kb/s": 1e3, "mb/s": 1e6,
+                 "gb/s": 1e9, "kib/s": 1024, "mib/s": 1024 ** 2, "gib/s": 1024 ** 3},
+    "energy": {"j": 1, "kj": 1000, "cal": 4.184, "kcal": 4184, "wh": 3600, "kwh": 3.6e6, "btu": 1055.05585},
     "data": {"b": 1, "kb": 1e3, "mb": 1e6, "gb": 1e9, "tb": 1e12,
              "kib": 1024, "mib": 1024 ** 2, "gib": 1024 ** 3, "tib": 1024 ** 4},
     "time": {"s": 1, "min": 60, "h": 3600, "d": 86400, "wk": 604800},
@@ -120,7 +132,15 @@ _ALIASES = {
     "l": "l", "liter": "l", "litre": "l", "tsp": "tsp", "teaspoon": "tsp", "tbsp": "tbsp",
     "tablespoon": "tbsp", "floz": "floz", "cup": "cup", "pt": "pt", "pint": "pt", "qt": "qt",
     "quart": "qt", "gal": "gal", "gallon": "gal",
-    "mph": "mph", "kph": "kph", "kmh": "kph", "kmph": "kph", "ms": "ms", "knot": "kn", "kn": "kn",
+    "mph": "mph", "kph": "kph", "kmh": "kph", "kmph": "kph", "km/h": "kph", "ms": "ms", "m/s": "ms", "mps": "ms",
+    "knot": "kn", "kn": "kn", "kt": "kn", "ft/s": "fps", "fps": "fps",
+    "pa": "pa", "pascal": "pa", "hpa": "hpa", "kpa": "kpa", "mbar": "mbar", "millibar": "mbar", "bar": "bar", "psi": "psi",
+    "atm": "atm", "atmosphere": "atm", "mmhg": "mmhg", "torr": "mmhg", "inhg": "inhg",
+    "mm2": "mm2", "cm2": "cm2", "m2": "m2", "sqm": "m2", "km2": "km2", "sqkm": "km2", "ha": "ha", "hectare": "ha",
+    "ft2": "ft2", "sqft": "ft2", "sqin": "in2", "in2": "in2", "yd2": "yd2", "acre": "acre", "mi2": "mi2", "sqmi": "mi2",
+    "bps": "bps", "kbps": "kbps", "mbps": "mbps", "gbps": "gbps", "b/s": "b/s", "kb/s": "kb/s", "mb/s": "mb/s", "gb/s": "gb/s",
+    "kib/s": "kib/s", "mib/s": "mib/s", "gib/s": "gib/s",
+    "j": "j", "joule": "j", "kj": "kj", "cal": "cal", "calorie": "cal", "kcal": "kcal", "wh": "wh", "kwh": "kwh", "btu": "btu",
     "b": "b", "byte": "b", "kb": "kb", "kilobyte": "kb", "mb": "mb", "megabyte": "mb",
     "gb": "gb", "gigabyte": "gb", "tb": "tb", "terabyte": "tb", "kib": "kib", "mib": "mib",
     "gib": "gib", "tib": "tib",
@@ -133,7 +153,7 @@ _KIND = {unit: kind for kind, units in _UNITS.items() for unit in units}
 
 def _unit(word):
     w = word.strip().lower().replace("°", "").replace("degrees", "").replace("degree", "").strip()
-    w = re.sub(r"\s+", "", w)
+    w = re.sub(r"\s+", "", w).replace("²", "2").replace("per", "/")
     if w in _ALIASES:
         return _ALIASES[w]
     if w.endswith("es") and w[:-2] in _ALIASES:
@@ -149,7 +169,7 @@ def _temperature(value, a, b):
 
 
 def convert(query):
-    m = re.fullmatch(r"\s*(-?[\d,]*\.?\d+)\s*([a-zA-Z°][a-zA-Z° ]*?)\s+(?:in|to|into|as)\s+([a-zA-Z°][a-zA-Z° ]*?)\s*",
+    m = re.fullmatch(r"\s*(-?[\d,]*\.?\d+)\s*([a-zA-Z°][a-zA-Z0-9°/ ²]*?)\s+(?:in|to|into|as)\s+([a-zA-Z°][a-zA-Z0-9°/ ²]*?)\s*",
                      query)
     if not m:
         return None

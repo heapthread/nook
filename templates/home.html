@@ -33,6 +33,9 @@
     <label>bookmarks <span class="soft">(one per line: a name, then the address)</span>
       <textarea name="marks" rows="5" spellcheck="false" placeholder="mail https://mail.example.com&#10;notes https://notes.example.com"></textarea>
     </label>
+    <label>your own styles <span class="soft">(optional css, kept only in this browser; colours are --bg --text --soft --link --line)</span>
+      <textarea name="css" rows="5" spellcheck="false" class="code" placeholder=":root { --bg: #fffdf8; --link: #b04a2a; }&#10;body { font-family: sans-serif; }"></textarea>
+    </label>
     <p class="actions"><button type="submit">save</button> <button type="button" data-act="clear">clear everything</button> <button type="button" data-act="clear-lists">forget recent and saved</button> <span class="soft">kept only in this browser</span></p>
     <p class="actions"><button type="button" data-act="backup">back up</button> <button type="button" data-act="restore">restore</button> <span class="status soft">a backup is one small file with your saved items, notes, bookmarks, engines and site lists</span><input type="file" accept="application/json,.json" hidden></p>
   </form>

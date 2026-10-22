@@ -213,5 +213,136 @@
     render();
   }
 
-  document.querySelectorAll(".nmap").forEach(init);
+
+  // --- the vector map: smooth, tilting, labels that stay readable. MapLibre draws it, from tiles and
+  // fonts that nook fetches; if the browser has no WebGL, the plain picture map above takes over.
+  var hasGL = (function () {
+    try { var c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; }
+  })();
+  var waiting = null;
+
+  function loadLibrary(done, failed) {
+    if (window.maplibregl) { done(); return; }
+    if (waiting) { waiting.push([done, failed]); return; }
+    waiting = [[done, failed]];
+    var css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "/static/vendor/maplibre-gl.css";
+    document.head.appendChild(css);
+    var script = document.createElement("script");
+    script.src = "/static/vendor/maplibre-gl-csp.js";
+    script.onload = function () {
+      try { maplibregl.setWorkerUrl("/static/vendor/maplibre-gl-csp-worker.js"); } catch (e) { maplibregl.workerUrl = "/static/vendor/maplibre-gl-csp-worker.js"; }
+      waiting.forEach(function (w) { w[0](); });
+    };
+    script.onerror = function () { waiting.forEach(function (w) { w[1](); }); };
+    document.head.appendChild(script);
+  }
+
+  var styles = {};
+  function styleFor(theme) {
+    if (!styles[theme]) {
+      styles[theme] = fetch("/mapstyle/" + theme + ".json").then(function (r) { return r.json(); }).then(function (s) {
+        s.sources.map.tiles = [location.origin + "/vt/{z}/{x}/{y}"];
+        s.glyphs = location.origin + "/glyphs/{fontstack}/{range}";
+        return s;
+      });
+    }
+    return styles[theme];
+  }
+  // dark when the page is dark, whatever made it so (the system, or your own styles)
+  function pageTheme() {
+    var m = /rgba?\((\d+), ?(\d+), ?(\d+)/.exec(getComputedStyle(document.body).backgroundColor || "");
+    return m && (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 110 ? "dark" : "light";
+  }
+
+  function vector(el) {
+    if (el.dataset.ready) return;
+    el.dataset.ready = "1";
+    var data = {};
+    try { data = JSON.parse(el.querySelector(".mapdata").textContent) || {}; } catch (e) {}
+    var host = el.querySelector(".tiles");
+    host.textContent = "";
+    el.classList.add("vector");
+    var link = getComputedStyle(el).getPropertyValue("--link").trim() || "#8a4b2a";
+    var theme = pageTheme();
+    var zoom = Math.max(0, Math.min(18, (parseInt(el.dataset.zoom, 10) || 4) - 1));
+
+    styleFor(theme).then(function (style) {
+      var map = new maplibregl.Map({
+        container: host, style: style, center: [parseFloat(el.dataset.lon) || 0, parseFloat(el.dataset.lat) || 0],
+        zoom: zoom, maxZoom: 19, attributionControl: false, fadeDuration: 150, pitchWithRotate: true, dragRotate: true
+      });
+      var panel = el.parentNode.querySelector(".panel");      // a details card over the map: centre on what is left visible
+      if (panel && window.innerWidth > 680) {
+        map.setPadding({ left: panel.offsetWidth + 24, top: 0, right: 0, bottom: 0 });
+        map.jumpTo({ center: [parseFloat(el.dataset.lon) || 0, parseFloat(el.dataset.lat) || 0], zoom: zoom });
+      }
+      map.touchZoomRotate.disableRotation();
+      map.scrollZoom.disable();                      // the page scrolls until the map has been clicked
+      el.addEventListener("pointerdown", function () { map.scrollZoom.enable(); });
+      el.addEventListener("blur", function () { map.scrollZoom.disable(); });
+
+      (data.markers || []).forEach(function (m) {
+        var node = document.createElement(m.href ? "a" : "span");
+        node.className = "pin" + (m.on ? " on" : "");
+        if (m.href) node.href = m.href;
+        if (m.label) node.title = m.label;
+        new maplibregl.Marker({ element: node, anchor: "center" }).setLngLat([m.lon, m.lat]).addTo(map);
+      });
+
+      function drawLines() {                          // a route, over the roads
+        (data.lines || []).forEach(function (line, i) {
+          var id = "route" + i;
+          if (map.getLayer(id + "-line")) map.removeLayer(id + "-line");
+          if (map.getLayer(id + "-casing")) map.removeLayer(id + "-casing");
+          if (map.getSource(id)) map.removeSource(id);
+          map.addSource(id, { type: "geojson", data: { type: "Feature", geometry: { type: "LineString",
+            coordinates: line.points.map(function (p) { return [p[1], p[0]]; }) } } });
+          map.addLayer({ id: id + "-casing", type: "line", source: id, layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#ffffff", "line-width": 9, "line-opacity": 0.95 } });
+          map.addLayer({ id: id + "-line", type: "line", source: id, layout: { "line-cap": "round", "line-join": "round" },
+            paint: Object.assign({ "line-color": "#2f7bf5", "line-width": 5 }, line.dashed ? { "line-dasharray": [0.1, 2] } : {}) });
+        });
+      }
+      map.on("style.load", drawLines);
+
+      var go = function (b) { return function () { if (b > 0) map.zoomIn(); else map.zoomOut(); }; };
+      el.querySelectorAll(".ctl button").forEach(function (b) { b.addEventListener("click", go(parseInt(b.dataset.z, 10))); });
+      el.nookMap = { go: function (lat, lon, z) { map.flyTo({ center: [lon, lat], zoom: Math.max(0, (z || 12) - 1), duration: 900 }); }, map: map };
+
+      // the page changes between light and dark: the map follows
+      var watch = window.matchMedia("(prefers-color-scheme: dark)");
+      var follow = function () {
+        var now = pageTheme();
+        if (now !== theme) { theme = now; styleFor(now).then(function (s) { map.setStyle(s); }); }
+      };
+      if (watch.addEventListener) watch.addEventListener("change", function () { setTimeout(follow, 50); });
+
+      // the credit: shown for five seconds (OpenStreetMap's own guideline), or until the map is used
+      var credit = el.querySelector(".credit");
+      if (credit) {
+        var info = credit.querySelector(".info");
+        var timer = setTimeout(hide, 5000);
+        credit.classList.add("show");
+        function hide() { clearTimeout(timer); credit.classList.remove("show"); info.setAttribute("aria-expanded", "false"); }
+        map.on("movestart", hide);
+        map.on("click", hide);
+        el.querySelectorAll(".ctl button").forEach(function (b) { b.addEventListener("click", hide); });
+        info.addEventListener("click", function () {
+          clearTimeout(timer);
+          credit.classList.toggle("show");
+          info.setAttribute("aria-expanded", credit.classList.contains("show") ? "true" : "false");
+        });
+      }
+      if (window.ResizeObserver) new ResizeObserver(function () { map.resize(); }).observe(el);
+    }).catch(function () { el.dataset.ready = ""; el.classList.remove("vector"); init(el); });
+  }
+
+  function boot(el) {
+    if (el.dataset.raster === "1" || !hasGL) { init(el); return; }
+    loadLibrary(function () { vector(el); }, function () { init(el); });
+  }
+
+  document.querySelectorAll(".nmap").forEach(boot);
 })();

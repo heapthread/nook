@@ -130,6 +130,48 @@
   <p class="src">from Wikipedia's &ldquo;on this day&rdquo;</p>
 </section>
 
+{% elif card.kind == "locate" %}
+<section class="card locate">
+  <h2>{{ card.category }} near you</h2>
+  <p>nook can find them if you share where you are, just for this search. your browser will ask first, and nothing is stored.</p>
+  <p class="actions"><button type="button" class="nearme" data-q="{{ card.query }}">use my location</button> <span class="soft nearnote"></span></p>
+  <p class="src">or name a place: <a href="/search?q={{ (card.category ~ ' in ') | urlencode }}">{{ card.category }} in &hellip;</a></p>
+  <script src="{{ url_for('static', filename='nearby.js') }}"></script>
+</section>
+
+{% elif card.kind == "places" %}
+<section class="card places">
+  <h2>{{ card.title }}</h2>
+  <ol class="placelist">
+    {% for p in card["items"] %}
+    <li><a href="/place/{{ p.id }}?q={{ card.query | urlencode }}"><span class="n">{{ p.name }}</span>
+      <span class="d">{{ p.kind }}{% if p.far %} &middot; {{ p.far }}{% endif %}{% if p.address %} &middot; {{ p.address }}{% endif %}</span>
+      {% if p.hours %}<span class="h">{{ p.hours[:60] }}</span>{% endif %}</a></li>
+    {% endfor %}
+  </ol>
+  {% if pics_on %}{{ nmap(card.lat, card.lon, card.zoom, card.markers) }}{% endif %}
+  <p class="src">places from OpenStreetMap. it is a map, not a review site, so there are no star ratings here; each place has a link to look for reviews.</p>
+</section>
+
+{% elif card.kind == "jump" %}
+<section class="card small jump"><p class="answer">go straight to <a href="{{ card.url }}" rel="noreferrer">{{ card.host }}</a></p></section>
+
+{% elif card.kind == "package" %}
+<section class="card package">
+  <p class="src">{{ card.registry }}</p>
+  <h2><a href="{{ card.page }}" rel="noreferrer">{{ card.name }}</a> <span class="ver">{{ card.version }}</span></h2>
+  {% if card.summary %}<p>{{ card.summary }}</p>{% endif %}
+  <pre class="value" id="pkg-install">{{ card.install }}</pre>
+  <p class="src"><button type="button" data-copy="pkg-install">copy</button>{% if card.licence %} &middot; {{ card.licence }}{% endif %}{% if card.extra %} &middot; {{ card.extra }}{% endif %}{% if card.home %} &middot; <a href="{{ card.home }}" rel="noreferrer">code</a>{% endif %}</p>
+</section>
+
+{% elif card.kind == "table" %}
+<section class="card facts">
+  <h2>{{ card.title }}</h2>
+  <dl class="rows">{% for k, v in card.rows %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl>
+  <p class="src">{{ card.note }}</p>
+</section>
+
 {% elif card.kind == "calendar" %}
 <section class="card calendar">
   <h2>{{ card.title }}</h2>

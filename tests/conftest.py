@@ -60,7 +60,28 @@ def offline(monkeypatch):
     async def no_random():
         return None
 
+    async def no_forecast(place, ll, unit):
+        return None
+
+    async def no_money(amount, source):
+        return None
+
+    async def no_gap(query, names):
+        return None
+
+    async def no_books(query):
+        return None
+
+    async def no_work(work_id):
+        return None
+
+    monkeypatch.setattr(nook, "ask_forecast", no_forecast)
+    monkeypatch.setattr(nook, "ask_money", no_money)
+    monkeypatch.setattr(nook, "ask_gap", no_gap)
+    monkeypatch.setattr(nook, "ask_books", no_books)
+    monkeypatch.setattr(nook, "ask_work", no_work)
     monkeypatch.setattr(nook, "ask_random", no_random)
+    monkeypatch.setattr(nook, "get_place", lambda pid: None)
     monkeypatch.setattr(nook, "ask_suggestion", no_suggestion)
     monkeypatch.setattr(nook, "ask_each", no_each)
     monkeypatch.setattr(nook, "ask_check", no_check)

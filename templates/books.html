@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ q or "books" }} - nook{% endblock %}
+{% block body %}
+<form class="bar" action="/books" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" placeholder="a book, an author, a subject" aria-label="search books"{% if not q %} autofocus{% endif %}>
+</form>
+<nav class="tabs"><span>books</span><a href="/search?q={{ q | urlencode }}">on the web</a></nav>
+
+{% if not q %}
+<p class="note">search millions of books and authors, with covers and reader ratings, from Open Library. nook asks for you, so your browser never does.</p>
+<p class="related"><span>try</span>{% for t in ("dune", "ursula le guin", "sourdough", "the hobbit", "poetry", "history of mathematics") %}<a href="/books?q={{ t | urlencode }}">{{ t }}</a>{{ " " }}{% endfor %}</p>
+{% elif found is none %}
+<p class="empty">the book catalogue isn't answering just now. try again in a moment.</p>
+{% elif not found %}
+<p class="empty">no books found for &ldquo;{{ q }}&rdquo;. try fewer words, or just the title.</p>
+{% else %}
+<div class="shelfgrid">
+  {% for b in found %}
+  <a class="bookcard" href="/book/{{ b.id }}?q={{ q | urlencode }}">
+    <span class="jacket">{% if pics_on and b.cover %}<img src="{{ px(b.cover) }}" alt="" loading="lazy">{% else %}<span class="nocover">{{ b.title[:40] }}</span>{% endif %}</span>
+    <span class="t">{{ b.title }}</span>
+    <span class="a">{{ b.authors }}{% if b.year %} &middot; {{ b.year }}{% endif %}</span>
+    {% if b.rating %}<span class="s">{{ b.rating }} / 5 <span class="soft">({{ b.votes }})</span></span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+<p class="note">catalogue and ratings: Open Library (openlibrary.org).</p>
+{% endif %}
+{% endblock %}

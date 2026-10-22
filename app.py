@@ -16,19 +16,27 @@ from markupsafe import Markup, escape
 from werkzeug.exceptions import HTTPException
 
 import answers
+import books
 import cards
 import codesearch
+import converter
+import daterange
 import dates
 import check_engines
 import earth
 import engines
 import facts
+import forecast
 import history
 import lenses
+import mapstyle
 import maps
 import me
 import merge
+import nearby
+import netinfo
 import news
+import packages
 import places
 import proxy
 import regions
@@ -36,6 +44,7 @@ import related
 import routes
 import tools
 import translate
+import vtiles
 import weather
 import wiki
 import wordtools
@@ -50,6 +59,7 @@ active = engines.load(config["engines"])
 wikipedia.CONTACT = config.get("contact", "")
 wiki.CONTACT = config.get("contact", "")
 proxy.CONTACT = config.get("contact", "")
+vtiles.configure(config.get("contact", ""))
 maps.configure(config.get("tile_url"), config.get("map_credit"), config.get("map_credit_url"), config.get("contact", ""))
 if wikipedia in active and not wikipedia.CONTACT:
     active.remove(wikipedia)  # Wikipedia's API refuses requests that don't say who is asking
@@ -152,7 +162,7 @@ hits = {}    # (bucket, visitor) -> recent request times
 
 # Nothing on a nook page may reach another site on its own: pictures come through /img,
 # and the only outside things allowed are YouTube's player (after a click) and video files.
-CSP = ("default-src 'none'; img-src 'self'; style-src 'self'; "
+CSP = ("default-src 'none'; img-src 'self' data: blob:; style-src 'self'; worker-src 'self' blob:; "
        "script-src 'self' https://www.youtube.com; frame-src https://www.youtube-nocookie.com; "
        "media-src 'self' https: http:; connect-src 'self'; form-action 'self'; base-uri 'none'")
 
@@ -240,9 +250,11 @@ def apply_sites(results):
     return first + [r for r in kept if r not in first], len(results) - len(kept)
 
 
-def can_do(engine, period, region, safe):
-    """Can this engine apply the time filter, region and strict safe search that were asked for?"""
+def can_do(engine, period, region, safe, date_range=None):
+    """Can this engine apply the time filter, date range, region and strict safe search that were asked for?"""
     if period and period not in getattr(engine, "SUPPORTS_TIME", ()):
+        return False
+    if date_range and not getattr(engine, "SUPPORTS_RANGE", False):
         return False
     if region and not getattr(engine, "can_region", lambda code: False)(region):
         return False
@@ -277,10 +289,10 @@ def engine_choices():
             "suggest_on": request.cookies.get("nook_suggest") != "off"}
 
 
-async def ask(query, page=1, chosen=None, period=None, region=None, safe=None):
+async def ask(query, page=1, chosen=None, period=None, region=None, safe=None, date_range=None):
     async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True,
                                  timeout=config["timeout"]) as client:
-        results, failed = await merge.gather(client, chosen or active, query, page, period, region, safe)
+        results, failed = await merge.gather(client, chosen or active, query, page, period, region, safe, date_range)
     return merge.collapse(results, config.get("per_site", 2)), failed
 
 
@@ -289,7 +301,8 @@ async def ask_card(query, picked):
     if not (cards.define_word(query) or cards.topic_of(query) or cards._currency(query.strip().lower())
             or places.unknown_places(query) or weather.place_in(query) or wordtools.parse(query)
             or translate.parse(query) or facts.parse(query)
-            or routes.parse(query) or earth.parse(query) or history.parse(query)):
+            or routes.parse(query) or earth.parse(query) or history.parse(query)
+            or packages.parse(query) or netinfo.parse(query) or nearby.parse(query)):
         return None
     async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=6) as client:
         try:
@@ -322,19 +335,19 @@ async def nothing():
 spelling = {}   # query -> the spelling Wikipedia suggests instead, or None
 
 
-async def web_and_card(query, page, picked, period=None, region=None, safe=None, engine_query=None):
+async def web_and_card(query, page, picked, period=None, region=None, safe=None, engine_query=None, date_range=None):
     """`engine_query` is what the engines hear when a lens narrows the search; cards and related
     searches are then left out, since they answer the plain question."""
     heard = engine_query or query
     if page != 1:
-        results, failed = await ask(heard, page, picked, period, region=region, safe=safe)
+        results, failed = await ask(heard, page, picked, period, region=region, safe=safe, date_range=date_range)
         return results, failed, None, []
     if engine_query:
         (results, failed), _ = await asyncio.gather(
-            ask(heard, page, picked, period, region=region, safe=safe), nothing())
+            ask(heard, page, picked, period, region=region, safe=safe, date_range=date_range), nothing())
         return results, failed, None, []
     (results, failed), card, more_like, said = await asyncio.gather(
-        ask(heard, page, picked, period, region=region, safe=safe), ask_card(query, picked),
+        ask(heard, page, picked, period, region=region, safe=safe, date_range=date_range), ask_card(query, picked),
         ask_related(query, picked), ask_suggestion(query))
     if len(spelling) > 500:
         spelling.clear()
@@ -397,21 +410,26 @@ def search():
     lens = request.args.get("l", "") if tab == "web" else ""
     if lens not in LENSES:
         lens = ""
-    engine_query = lenses.apply(query, LENSES[lens]) if lens else None
+    # before:2020 / after:2023-05 / during:2021 are taken out of the words and become a date range
+    asked_for, date_range = daterange.parse(query) if tab == "web" else (query, None)
+    engine_query = (lenses.apply(asked_for, LENSES[lens]) if lens else (asked_for if date_range else None))
     period, region, safe, limit_note = (chosen_period() if tab == "web" else None), chosen_region(), chosen_safe(), ""
     limits = [PERIODS[period]] if period else []
+    if date_range:
+        limits.append(f"{date_range[0]} to {date_range[1]}")
     if region:
         limits.append(regions.LABELS[region])
     if safe == "strict":
         limits.append("strict safe search")
     if tab == "web" and limits:
-        usable = [e for e in picked if can_do(e, period, region, safe)]
+        usable = [e for e in picked if can_do(e, period, region, safe, date_range)]
         if usable:  # only some engines can do all of that, so only those are asked
             if len(usable) < len(picked):
                 limit_note = f"{', '.join(limits)}: only {' and '.join(e.NAME for e in usable)} can do that."
             picked = usable
         else:
-            period = region = None  # none of the chosen engines can, so ask them without
+            period = region = date_range = None  # none of the chosen engines can, so ask them without
+            engine_query = lenses.apply(asked_for, LENSES[lens]) if lens else asked_for
             safe = None if safe == "strict" else safe
             limit_note = f"none of your engines can do {', '.join(limits)}, so it was left out."
     image_now = {}
@@ -420,7 +438,17 @@ def search():
                                   ("colour", "co", bing_images.COLOURS)):
             if request.args.get(arg, "") in table:
                 image_now[field] = request.args[arg]
-    which = (",".join(e.NAME for e in picked) if tab == "web" else "") + f"|{period}|{region}|{safe}|{lens}|{sorted(image_now.items())}"
+    which = (",".join(e.NAME for e in picked) if tab == "web" else "") + f"|{period}|{region}|{safe}|{lens}|{sorted(image_now.items())}|{date_range}"
+    spot = None
+    if tab == "web" and "ll" in request.args:
+        try:
+            lat, lon = (float(v) for v in request.args["ll"].split(","))
+            if -85 < lat < 85 and -180 <= lon <= 180:
+                spot = (round(lat, 3), round(lon, 3))      # about a hundred metres is plenty
+        except ValueError:
+            pass
+    nearby.here.set(spot)
+    which += f"|{spot}"
     key = (tab, query.lower(), page, which)
     asked = [e.NAME for e in picked] if tab == "web" else [MEDIA[tab].NAME]
     started = time.monotonic()
@@ -438,7 +466,7 @@ def search():
         else:
             if tab == "web":
                 results, failed, card, similar = asyncio.run(
-                    web_and_card(query, page, picked, period, region, safe, engine_query))
+                    web_and_card(query, page, picked, period, region, safe, engine_query, date_range))
             else:
                 results, failed = asyncio.run(ask_media(MEDIA[tab], query, page, region=region, safe=safe,
                                                       **({"filters": image_now} if image_now else {})))
@@ -612,6 +640,60 @@ def maps_page():
                            lat=lat, lon=lon, zoom=zoom, name=name)
 
 
+@app.get("/mapstyle/<theme>.json")
+def map_style(theme):
+    if theme not in ("light", "dark"):
+        abort(404)
+    resp = jsonify(mapstyle.style(theme, ""))          # addresses are relative; the page adds its own origin
+    resp.add_etag()
+    resp.cache_control.no_cache = True                 # always ask, so a restyle shows up; a 304 costs nothing
+    return resp.make_conditional(request)
+
+
+@app.get("/vt/<int:z>/<int:x>/<int:y>")
+def vector_tile(z, x, y):
+    if not vtiles.valid_tile(z, x, y):
+        abort(404)
+    if too_busy(request.remote_addr, "pictures", config.get("picture_limit_per_minute", 600) * 2):
+        abort(429)
+    try:
+        body = vtiles.tile(z, x, y)
+    except (httpx.HTTPError, ValueError, KeyError, IndexError):
+        abort(502)
+    return Response(body, mimetype="application/x-protobuf", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/glyphs/<stack>/<rng>")
+def map_glyphs(stack, rng):
+    try:
+        body = vtiles.font(stack, rng.removesuffix(".pbf"))
+    except ValueError:
+        abort(404)
+    except httpx.HTTPError:
+        abort(502)
+    return Response(body, mimetype="application/x-protobuf", headers={"Cache-Control": "public, max-age=604800"})
+
+
+def get_place(pid):
+    try:
+        return nearby.get(pid)
+    except httpx.HTTPError:
+        return None
+
+
+@app.get("/place/<pid>")
+def place_page(pid):
+    if too_busy(request.remote_addr, "place", 30):
+        abort(429)
+    place = get_place(pid)
+    if place is None:
+        return render_template("message.html", text="couldn't find that place. it may have been removed from the map."), 404
+    q = request.args.get("q", "")[:120]
+    city = place["town"] or place["address"].split(", ")[-1]
+    return render_template("place.html", place=place, q=q, reviews=f"{place['name']} {city} reviews".strip(),
+                           osm=f"https://www.openstreetmap.org/{ {'N': 'node', 'W': 'way', 'R': 'relation'}[pid[0]] }/{pid[1:]}")
+
+
 @app.get("/audio")
 def audio_clip():
     if too_busy(request.remote_addr, "pictures", config.get("picture_limit_per_minute", 600)):
@@ -626,9 +708,25 @@ def audio_clip():
     return Response(body, mimetype=kind, headers={"Cache-Control": "public, max-age=86400"})
 
 
+traffic = {}   # visitor -> (window start, bytes passed on): nook is not a free download service
+
+
+def over_budget(visitor, spent=0):
+    """Has this visitor had their share of picture bytes this minute? Adds `spent` first."""
+    now = time.monotonic()
+    start, used = traffic.get(visitor, (now, 0))
+    if now - start > 60:
+        start, used = now, 0
+    used += spent
+    traffic[visitor] = (start, used)
+    if len(traffic) > 5000:
+        traffic.clear()
+    return used > config.get("picture_mb_per_minute", 60) * 1_000_000
+
+
 @app.get("/img")
 def img():
-    if too_busy(request.remote_addr, "pictures", config.get("picture_limit_per_minute", 600)):
+    if too_busy(request.remote_addr, "pictures", config.get("picture_limit_per_minute", 600)) or over_budget(request.remote_addr):
         abort(429)
     url = request.args.get("u", "")
     if not proxy.verify(url, request.args.get("s")):
@@ -637,6 +735,7 @@ def img():
         body, kind = proxy.fetch(url)
     except (proxy.Refused, httpx.HTTPError):
         abort(502)
+    over_budget(request.remote_addr, len(body))
     return Response(body, mimetype=kind, headers={"Cache-Control": "public, max-age=86400"})
 
 
@@ -1022,6 +1121,24 @@ def search_rss():
     return Response(xml, mimetype="application/rss+xml")
 
 
+@app.get("/cli")
+def cli():
+    """The same search as plain text, for a terminal: curl "https://your-nook/cli?q=sourdough" """
+    q = request.args.get("q", "").strip()[:200]
+    if not q:
+        return Response("usage: curl \"" + request.host_url + "cli?q=your+search\"\n", mimetype="text/plain")
+    lines = []
+    sure = answers.answer(q)
+    if sure:
+        lines += [sure, ""]
+    _, lens, shown, failed = search_results()
+    for n, r in enumerate(shown[:min(int(request.args.get("n", 8) or 8), 20)], 1):
+        lines += [f"{n}. {r.title}", f"   {r.url}"] + ([f"   {r.snippet[:160]}"] if r.snippet else []) + [""]
+    if not shown:
+        lines.append("nothing found.")
+    return Response("\n".join(lines) + "\n", mimetype="text/plain")
+
+
 @app.get("/watching")
 def watching_page():
     return render_template("watching.html")
@@ -1155,6 +1272,110 @@ def daily():
     resp = jsonify((asyncio.run(ask_learn()).get("word")) or {})
     resp.headers["Cache-Control"] = "private, max-age=3600"
     return resp
+
+
+# --- /weather, /convert, /books
+
+def _ll():
+    try:
+        lat, lon = (float(v) for v in request.args.get("ll", "").split(","))
+    except ValueError:
+        return None
+    return (round(lat, 3), round(lon, 3)) if -85 < lat < 85 and -180 <= lon <= 180 else None
+
+
+async def ask_forecast(place, ll, unit):
+    async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=8) as client:
+        return await forecast.lookup(client, place, ll, unit)
+
+
+@app.get("/weather")
+def weather_page():
+    place, unit, ll = forecast.valid_place(request.args.get("q", "")), forecast.clean_unit(request.args.get("u")), _ll()
+    page = None
+    if place or ll:
+        if too_busy(request.remote_addr, "weather", 30):
+            abort(429)
+        page = asyncio.run(ask_forecast(place, ll, unit))
+    return render_template("weather.html", q=place, unit=unit, page=page, asked=bool(place or ll), ll=ll)
+
+
+async def ask_money(amount, source):
+    async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=8) as client:
+        return await converter.money(client, amount, source)
+
+
+async def ask_gap(query, names):
+    async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=8) as client:
+        unknown = []
+        for n in names:
+            unknown += places.unknown_places(f"time in {n}") or []
+        if unknown:
+            await places.learn(client, list(dict.fromkeys(unknown)))
+    return places.answer(query)
+
+
+@app.get("/convert")
+def convert_page():
+    mode = request.args.get("m") if request.args.get("m") in ("money", "units", "time") else "money"
+    ctx = {"mode": mode, "kinds": list(converter.KINDS), "name": converter.name, "currencies": sorted(cards.CURRENCIES),
+           "units": converter.KINDS}
+    a = converter.number(request.args.get("v"), 100.0 if mode == "money" else 1.0)
+    if mode == "money":
+        source = request.args.get("from", "USD").upper()
+        source = source if source in cards.CURRENCIES else "USD"
+        ctx.update(amount=a, source=source, result=None)
+        if too_busy(request.remote_addr, "convert", 60):
+            abort(429)
+        ctx["result"] = asyncio.run(ask_money(a, source))
+    elif mode == "units":
+        kind = request.args.get("k") if request.args.get("k") in converter.KINDS else "length"
+        source = request.args.get("from") if request.args.get("from") in converter.KINDS[kind] else converter.KINDS[kind][0]
+        ctx.update(kind=kind, amount=a, source=source, rows=converter.convert(kind, a, source))
+    else:
+        a_place, b_place = request.args.get("a", "").strip()[:40], request.args.get("b", "").strip()[:40]
+        at = request.args.get("at", "").strip()[:10]
+        card = None
+        if a_place and b_place:
+            if too_busy(request.remote_addr, "convert", 60):
+                abort(429)
+            query = f"{at} in {a_place} to {b_place}" if at else f"{a_place} time to {b_place} time"
+            card = asyncio.run(ask_gap(query, [a_place, b_place]))
+        ctx.update(a=a_place, b=b_place, at=at, card=card if card and card.get("kind") == "zones" else None, asked=bool(a_place and b_place))
+    return render_template("convert.html", **ctx)
+
+
+async def ask_books(query):
+    async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=8) as client:
+        return await books.search(client, query)
+
+
+async def ask_work(work_id):
+    async with httpx.AsyncClient(headers=engines.HEADERS, follow_redirects=True, http2=True, timeout=8) as client:
+        return await books.work(client, work_id)
+
+
+@app.get("/books")
+def books_page():
+    q = request.args.get("q", "").strip()[:100]
+    found = None
+    if q:
+        if too_busy(request.remote_addr, "books", 30):
+            abort(429)
+        found = asyncio.run(ask_books(q))
+    return render_template("books.html", q=q, found=found)
+
+
+@app.get("/book/<work_id>")
+def book_page(work_id):
+    if too_busy(request.remote_addr, "books", 30):
+        abort(429)
+    book = asyncio.run(ask_work(work_id))
+    if book is None:
+        return render_template("message.html", text="couldn't find that book."), 404
+    who = book["authors"].split(",")[0]
+    return render_template("book.html", b=book, q=request.args.get("q", "")[:100],
+                           reviews=f'"{book["title"]}" {who} book review'.strip())
 
 
 @app.get("/opensearch.xml")

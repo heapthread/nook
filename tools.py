@@ -28,6 +28,7 @@ CATALOG = [
         ("ages and gaps", ["how old is someone born 12 may 1990", "days between 2026-01-01 and 2026-12-25", "moon phase"]),
     ]),
     ("search tricks", [
+        ("by date", ["python release notes after:2023", "olympics before:2000", "election during:2020", "climate report after:2024-01 before:2024-06"]),
         ("narrow it down", ['"sourdough starter"', "tide site:wikipedia.org", "python -snake", "annual report filetype:pdf", "intitle:recipe sourdough"]),
     ]),
     ("small things", [
@@ -38,6 +39,8 @@ CATALOG = [
         ("a timer", ["timer 5 min", "timer 90 seconds"]),
     ]),
     ("for developers", [
+        ("packages", ["npm react", "pip install httpx", "cargo add tokio"]),
+        ("networks", ["dns example.com", "dig github.com mx", "whois github.com", "192.168.1.0/24 range"]),
         ("make something", ["uuid", "random password 24", "lorem ipsum 3 paragraphs"]),
         ("encode and hash", ["sha256 of hello", "base64 encode hi", "url encode a b"]),
         ("colours and time", ["#ff8800", "rgb(255,136,0)", "epoch 1700000000"]),
@@ -46,7 +49,8 @@ CATALOG = [
 
 PAGES = [("news", "/news"), ("maps", "/maps"), ("tools", "/tools"), ("shelf", "/shelf"), ("code", "/code"),
          ("today", "/today"), ("travel", "/travel"), ("world", "/world"), ("learn", "/learn"),
-         ("watching", "/watching"), ("surprise me", "/surprise"), ("status", "/status"), ("compare engines", "/versus"), ("about", "/about"), ("home", "/")]
+         ("watching", "/watching"), ("surprise me", "/surprise"),
+         ("weather", "/weather"), ("convert", "/convert"), ("books", "/books"), ("status", "/status"), ("compare engines", "/versus"), ("about", "/about"), ("home", "/")]
 
 
 def flat():

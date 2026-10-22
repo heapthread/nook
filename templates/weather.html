@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ page.place if page else "weather" }} - nook{% endblock %}
+{% block body %}
+<form class="bar" action="/weather" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" placeholder="a city" aria-label="a place"{% if not asked %} autofocus{% endif %}>
+  {% if unit == "f" %}<input type="hidden" name="u" value="f">{% endif %}
+</form>
+<nav class="tabs"><span>weather</span><a href="/world">world</a><a href="/today">today</a>
+  <span class="unitset">{% if unit == "f" %}<a href="/weather?{% if q %}q={{ q | urlencode }}{% endif %}">°C</a> <span>°F</span>{% else %}<span>°C</span> <a href="/weather?{% if q %}q={{ q | urlencode }}&amp;{% endif %}u=f">°F</a>{% endif %}</span>
+</nav>
+<p class="weatherplaces" hidden></p>
+
+{% if page %}
+<section class="wnow">
+  <div class="where">{{ page.place }} <button type="button" class="starplace" data-place="{{ q or page.place }}" title="keep this place on the weather page">save place</button></div>
+  <div class="degree">{{ page.temp }}</div>
+  <div class="what">{{ page.text }}{% if page.feels %} &middot; feels like {{ page.feels }}{% endif %}</div>
+  <div class="facts">
+    {% if page.wind %}<span>wind {{ page.wind }}</span>{% endif %}{% if page.humidity %}<span>humidity {{ page.humidity }}</span>{% endif %}
+    <span>uv {{ page.uv }}</span>{% if page.sunrise %}<span>sunrise {{ page.sunrise }}</span><span>sunset {{ page.sunset }}</span>{% endif %}
+  </div>
+</section>
+
+<section class="whours" aria-label="the next 24 hours">
+  {% for h in page.hours %}<div><span class="t">{{ h.hour }}</span><span class="d">{{ h.temp }}</span><span class="r">{% if h.rain %}{{ h.rain }}%{% endif %}</span></div>{% endfor %}
+</section>
+
+<section class="wdays">
+  {% for d in page.days %}
+  <div class="row">
+    <span class="n">{{ d.day }}</span><span class="x">{{ d.text }}{% if d.rain and d.rain >= 30 %} &middot; {{ d.rain }}% rain{% endif %}</span>
+    <span class="lo">{{ d.low }}</span>
+    <span class="bar" role="img" aria-label="from {{ d.low }} to {{ d.high }}"><i data-from="{{ d.from }}" data-to="{{ d.to }}"></i></span>
+    <span class="hi">{{ d.high }}</span>
+  </div>
+  {% endfor %}
+</section>
+<p class="note">forecast and place search: open-meteo.com. wind up to {{ page.days[0].wind }} today.</p>
+{% elif asked %}
+<p class="empty">couldn't find the weather for that. try a city name.</p>
+{% else %}
+<p class="note">type a city, or <button type="button" class="nearme">use my location</button> <span class="nearnote soft"></span>. your position is only used for this page and isn't stored.</p>
+{% endif %}
+<script src="{{ url_for('static', filename='weather.js') }}"></script>
+{% endblock %}
