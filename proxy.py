@@ -23,6 +23,20 @@ IMAGE_HEADERS = {"User-Agent": UA, "Accept": "image/avif,image/webp,image/png,im
 PAGE_HEADERS = {"User-Agent": UA, "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
                 "Accept-Language": "en-US,en;q=0.9"}
 
+# Wikimedia's servers turn away clients that pretend to be a browser. They ask for a User-Agent
+# that says what the program is and how to reach its owner, so that is what their hosts get.
+POLITE = (".wikimedia.org", ".wikipedia.org", ".wikidata.org")
+CONTACT = ""
+
+
+def _headers_for(url, headers):
+    host = (urlparse(url).hostname or "").lower()
+    if any(host.endswith(d) for d in POLITE):
+        who = CONTACT or "self-hosted metasearch page"
+        return {**headers, "User-Agent": f"nook/1.0 ({who})"}
+    return headers
+
+
 _secret = secrets.token_bytes(32)
 
 
@@ -81,11 +95,11 @@ class Refused(Exception):
 
 def _get(url, headers, accept, limit):
     """Returns (bytes, content type, charset). Raises Refused for anything we won't pass on."""
-    with httpx.Client(headers=headers, timeout=8, follow_redirects=False) as client:
+    with httpx.Client(headers=headers, timeout=8, follow_redirects=False, http2=True) as client:  # some hosts (Wikimedia, Yahoo) only answer HTTP/2
         for _ in range(MAX_REDIRECTS + 1):
             if not is_public(url):
                 raise Refused("not a public address")
-            with client.stream("GET", url) as r:
+            with client.stream("GET", url, headers=_headers_for(url, headers)) as r:
                 if r.is_redirect:
                     url = urljoin(url, r.headers.get("location", ""))
                     continue
@@ -126,6 +140,13 @@ def fetch_page(url):
     body, _, charset = _get(url, PAGE_HEADERS,
                             lambda k: k in ("text/html", "application/xhtml+xml"), MAX_PAGE)
     return body.decode(charset or "utf-8", "replace")
+
+
+def fetch_feed(url):
+    """A news feed (RSS or Atom): its XML as bytes. Whatever address a visitor adds must be public."""
+    body, _, _ = _get(url, PAGE_HEADERS, lambda k: "xml" in k or k in ("text/plain", "application/octet-stream", "text/html"),
+                      2 * 1024 * 1024)
+    return body
 
 
 def fetch_audio(url):

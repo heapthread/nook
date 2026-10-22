@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_map.html" import nmap %}
+{% block title %}{{ q or name or "maps" }} - nook{% endblock %}
+{% block body %}
+<form class="bar" action="/maps" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" placeholder="find a place" aria-label="find a place"{% if not q %} autofocus{% endif %}>
+</form>
+<nav class="tabs"><span>maps</span><a href="/news">news</a><a href="/tools">tools</a></nav>
+
+{% if q and not places %}
+  <p class="empty">{% if failed %}the map's place search isn't answering just now. try again in a moment.{% else %}no place called &ldquo;{{ q }}&rdquo;. try a city or a street and a city.{% endif %}</p>
+{% endif %}
+{% if places %}
+<ol class="places">
+  {% for p in places %}
+  <li{% if loop.index0 == picked %} class="on"{% endif %}><a href="/maps?q={{ q | urlencode }}&amp;i={{ loop.index0 }}" data-lat="{{ p.lat }}" data-lon="{{ p.lon }}" data-zoom="{{ p.zoom }}"><span class="name">{{ p.name }}{% if p.kind %} <span class="soft">{{ p.kind }}</span>{% endif %}</span>{% if p.where %}<span class="where">{{ p.where }}</span>{% endif %}</a></li>
+  {% endfor %}
+</ol>
+{% endif %}
+
+{{ nmap(lat, lon, zoom, markers, big=True) }}
+{% if places %}
+<p class="mapnote"><a href="{{ places[picked].osm }}" rel="noreferrer">open on openstreetmap.org</a></p>
+<script src="{{ url_for('static', filename='maps.js') }}"></script>
+{% elif lat is not none and name %}
+<p class="mapnote">{{ name }} &middot; <a href="https://www.openstreetmap.org/?mlat={{ lat }}&amp;mlon={{ lon }}#map={{ zoom }}/{{ lat }}/{{ lon }}" rel="noreferrer">open on openstreetmap.org</a></p>
+{% elif not q %}
+<p class="mapnote">search for a city, a street, a mountain. the map is drawn from OpenStreetMap, passed through nook, so your browser never talks to them.</p>
+{% endif %}
+{% endblock %}

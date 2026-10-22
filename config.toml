@@ -19,3 +19,10 @@ news_refresh_minutes = 8   # refresh the news feeds in the background (0 turns i
 # nook already knows !w !yt !gh !hn !so !r !mdn !pypi !npm !maps !a !imdb !g !ddg !bing
 # [bangs]
 # arch = "https://wiki.archlinux.org/index.php?search={}"
+
+# Maps: tiles come from OpenStreetMap by default, passed through nook and remembered a week.
+# Heavy public use of their free tile server is against their rules, so for a busy instance
+# point this at a tile server you are allowed to use (and change the credit to match).
+# tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+# map_credit = "© OpenStreetMap contributors"
+# map_credit_url = "https://www.openstreetmap.org/copyright"

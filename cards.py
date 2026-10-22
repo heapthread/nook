@@ -12,8 +12,17 @@ from selectolax.lexbor import LexborHTMLParser
 
 import dates
 import devtools
+import earth
+import facts
+import figures
+import history
 import places
+import plot
+import routes
+import texttools
+import translate
 import weather
+import wiki
 import wordtools
 
 AHD = "https://www.ahdictionary.com"
@@ -88,6 +97,10 @@ def local(query, now=None):
     seconds = _timer_seconds(q)
     if seconds:
         return {"kind": "timer", "seconds": seconds}
+    if q in ("pomodoro", "pomodoro timer", "start pomodoro"):
+        return {"kind": "timer", "seconds": 25 * 60}
+    if q in ("stopwatch", "online stopwatch", "start stopwatch", "stop watch"):
+        return {"kind": "stopwatch"}
     if re.match(r"^(?:flip|toss) a coin$|^coin (?:flip|toss)$|^heads or tails$", q):
         return {"kind": "dice", "big": random.choice(["heads", "tails"]), "small": "a coin flip"}
     m = re.match(r"^(?:roll|throw) (?:a |an )?(?:(\d{0,2})d(\d{1,4})|di[ce]e?)$", q)
@@ -102,7 +115,8 @@ def local(query, now=None):
         lo, hi = sorted((int(m.group(1)), int(m.group(2))))
         if hi - lo < 10 ** 12:
             return {"kind": "dice", "big": str(random.randint(lo, hi)), "small": f"a number from {lo} to {hi}"}
-    return dates.answer(query, now=now) or devtools.answer(query, now) or places.answer(query, now)
+    return (plot.answer(query) or figures.answer(query) or texttools.answer(query) or dates.answer(query, now=now)
+            or devtools.answer(query, now) or places.answer(query, now))
 
 
 # --- dictionary pages ------------------------------------------------------
@@ -347,8 +361,11 @@ async def currency(client, amount, a, b):
     return _remember("currency", key, card)
 
 
-async def lookup(client, query, with_knowledge=True):
-    """The card (if any) that needs the outside world. Returns None quickly for most queries."""
+async def lookup(client, query, with_knowledge=True, lang="en"):
+    """The card (if any) that needs the outside world. Returns None quickly for most queries.
+
+    A short plain query is looked up in Wikipedia first (in `lang`); DuckDuckGo's instant answer
+    is the fallback, and only while that engine is on (`with_knowledge`)."""
     names = places.unknown_places(query)
     if names:  # a time question about a place nook doesn't know yet: find out, then local() can answer
         await places.learn(client, names)
@@ -365,8 +382,22 @@ async def lookup(client, query, with_knowledge=True):
     swap = _currency(q)
     if swap:
         return await currency(client, *swap)
-    if with_knowledge:
-        topic = topic_of(query)
-        if topic:
+    said = await translate.lookup(client, query)
+    if said:
+        return said
+    for module in (routes, earth, history):
+        card = await module.lookup(client, query)
+        if card:
+            return card
+    if facts.parse(query):
+        card = await facts.lookup(client, query, lang)
+        if card:
+            return card
+    topic = topic_of(query)
+    if topic:
+        card = await wiki.lookup(client, topic, lang)
+        if card:
+            return card
+        if with_knowledge:
             return await knowledge(client, topic)
     return None

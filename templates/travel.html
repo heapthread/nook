@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_map.html" import nmap %}
+{% block title %}{% if a and b %}{{ a }} to {{ b }}{% else %}travel{% endif %} - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>travel</span></p>
+<form class="travelform" action="/travel" method="get">
+  <input type="search" name="from" value="{{ a }}" placeholder="from" aria-label="from"{% if not a %} autofocus{% endif %}>
+  <input type="search" name="to" value="{{ b }}" placeholder="to" aria-label="to">
+  <select name="mode" aria-label="how">
+    <option value="drive"{% if mode == "drive" %} selected{% endif %}>by car</option>
+    <option value="bike"{% if mode == "bike" %} selected{% endif %}>by bike</option>
+    <option value="walk"{% if mode == "walk" %} selected{% endif %}>on foot</option>
+  </select>
+  <button type="submit">go</button>
+</form>
+
+{% if a and b and not route %}
+<p class="empty">couldn't find one of those places, or the route service isn't answering. try a city name.</p>
+{% endif %}
+{% if route %}
+<section class="card route">
+  <p class="src">{{ route.from }} &rarr; {{ route.to }} &middot; {{ route.how }}</p>
+  <div class="big">{{ "%g" | format(route.km) }} km</div>
+  <p class="src">{% if route.time %}about {{ route.time }} &middot; {% endif %}{{ "%g" | format(route.mi) }} mi{% if not route.straight %} &middot; {{ "%g" | format(route.crow) }} km in a straight line{% endif %}</p>
+  {{ nmap(route.lat, route.lon, route.zoom, route.markers, big=True, lines=[{"points": route.line, "dashed": route.straight}]) }}
+</section>
+{% if gap %}
+<section class="card small zones">
+  {% for side, size in ((gap.first, "from"), (gap.second, "to")) %}
+  <div class="row {{ size }}"><span class="t">{{ side.clock }}</span><span class="p">{{ side.place }}<span class="z">{{ side.zone }}</span></span></div>
+  {% endfor %}
+  <p class="src">{{ gap.note }}</p>
+</section>
+{% endif %}
+{% for w in forecasts if w %}
+<section class="today weather">
+  <div class="now"><span class="deg">{{ w.temp }}</span><span class="what">{{ w.place }}<span class="z">{{ w.text }}{% if w.days %} &middot; {{ w.days[0].low }} / {{ w.days[0].high }}{% endif %}</span></span></div>
+</section>
+{% endfor %}
+<p class="note">places and routes: OpenStreetMap. weather: open-meteo.com.</p>
+{% elif not a %}
+<p class="note">the way between two places: distance, how long it takes, the route on the map, the time difference, and the weather at both ends.</p>
+{% endif %}
+{% endblock %}

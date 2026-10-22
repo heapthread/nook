@@ -6,6 +6,7 @@ from . import Image
 
 NAME = "bing images"
 SUPPORTS_SAFE = True
+SUPPORTS_FILTERS = True
 SAFE = {"strict": "strict", "off": "off"}
 
 
@@ -27,8 +28,31 @@ def parse(text):
     return out
 
 
-async def search(client, query, page=1, safe=None, **_):
+SIZES = {"small": "small", "medium": "medium", "large": "large", "huge": "wallpaper"}
+KINDS = {"photo": "photo-photo", "clipart": "photo-clipart", "drawing": "photo-linedrawing", "animated": "photo-animatedgif"}
+COLOURS = {"red": "FGcls_RED", "orange": "FGcls_ORANGE", "yellow": "FGcls_YELLOW", "green": "FGcls_GREEN",
+           "teal": "FGcls_TEAL", "blue": "FGcls_BLUE", "purple": "FGcls_PURPLE", "pink": "FGcls_PINK",
+           "brown": "FGcls_BROWN", "black": "FGcls_BLACK", "grey": "FGcls_GRAY", "white": "FGcls_WHITE",
+           "black and white": "bw"}
+
+
+def filters(size=None, kind=None, colour=None):
+    """Bing's `qft` value for the filters chosen: "+filterui:imagesize-large+filterui:photo-photo"."""
+    parts = []
+    if size in SIZES:
+        parts.append(f"imagesize-{SIZES[size]}")
+    if kind in KINDS:
+        parts.append(KINDS[kind])
+    if colour in COLOURS:
+        parts.append("color2-" + COLOURS[colour])
+    return "".join(f"+filterui:{p}" for p in parts)
+
+
+async def search(client, query, page=1, safe=None, size=None, kind=None, colour=None, **_):
     params = {"q": query}
+    qft = filters(size, kind, colour)
+    if qft:
+        params["qft"] = qft
     if safe in SAFE:
         params["adlt"] = SAFE[safe]
     if page > 1:

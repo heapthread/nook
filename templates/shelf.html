@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}shelf - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>shelf</span></p>
+<p class="note shelfnote">everything on this page is kept only in this browser. nook's server never sees it.</p>
+
+<section class="shelf" id="shelf-saved">
+  <h2>saved</h2>
+  <input type="search" class="shelf-find" placeholder="search what you saved" aria-label="search saved items">
+  <p class="tags"></p>
+  <ul class="shelf-items"></ul>
+  <p class="note none" hidden>nothing saved yet. press <b>s</b> on a result, or click &ldquo;save&rdquo; under it.</p>
+  <p class="actions"><button type="button" data-act="copy">copy as a list</button> <button type="button" data-act="clear">remove all</button></p>
+</section>
+
+<section class="shelf" id="shelf-kept">
+  <h2>kept copies</h2>
+  <ul class="shelf-items"></ul>
+  <article class="reader keptview" hidden></article>
+  <p class="note none" hidden>nothing kept. press &ldquo;keep a copy&rdquo; on an article in the reader to save its text here, so you still have it if the page changes or goes behind a paywall.</p>
+</section>
+
+<section class="shelf" id="shelf-recent">
+  <h2>recent searches</h2>
+  <p class="items"></p>
+  <p class="note none" hidden>nothing here. recent searches are only remembered if you switch that on with the pencil on the home page.</p>
+  <p class="actions"><button type="button" data-act="clear">forget them</button></p>
+</section>
+
+<section class="shelf" id="shelf-notes">
+  <h2>notes</h2>
+  <textarea rows="8" spellcheck="false" placeholder="a few notes" aria-label="notes"></textarea>
+</section>
+
+<section class="shelf" id="shelf-marks">
+  <h2>bookmarks</h2>
+  <ul class="marks"></ul>
+  <p class="note none" hidden>none yet. add some with the pencil on the <a href="/">home page</a>.</p>
+</section>
+<script src="{{ url_for('static', filename='shelf.js') }}"></script>
+{% endblock %}

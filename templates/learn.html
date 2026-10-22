@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}learn - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>learn</span></p>
+
+<form class="learnform" action="/search" method="get">
+  <input type="search" name="q" placeholder="a word" aria-label="a word" autofocus>
+  <span class="learnbtns">
+    <button type="button" data-prefix="define ">define</button>
+    <button type="button" data-prefix="rhymes with ">rhymes</button>
+    <button type="button" data-prefix="synonyms for ">synonyms</button>
+    <button type="button" data-prefix="antonyms of ">opposites</button>
+    <button type="button" data-prefix="words that start with ">starts with</button>
+    <button type="button" data-prefix="words that end in ">ends with</button>
+  </span>
+</form>
+
+{% if today.word %}
+<section class="card define">
+  <p class="src">word of the day</p>
+  <h2><a href="/search?q=define+{{ today.word.word | urlencode }}">{{ today.word.word }}</a></h2>
+  {% if today.word.definition %}<p>{{ today.word.definition }}</p>{% endif %}
+  <p class="src">Wiktionary &middot; <a href="{{ today.word.url }}" rel="noreferrer">full entry</a></p>
+</section>
+{% endif %}
+
+{% if today.article %}
+<section class="card knowledge">
+  {% if pics_on and today.article.image %}<img class="pic" src="{{ px(today.article.image) }}" alt="" loading="lazy">{% endif %}
+  <div class="body">
+    <p class="src">today's featured article</p>
+    <h2>{{ today.article.title }}</h2>
+    <p>{{ today.article.text }}</p>
+    <p class="src">Wikipedia{% if today.article.url %} &middot; <a href="{{ today.article.url }}" rel="noreferrer">read more</a>{% endif %}</p>
+  </div>
+</section>
+{% endif %}
+
+{% if today.day %}
+<section class="card history">
+  <h2>{{ today.day.title }}, through the years</h2>
+  <ul class="timeline">{% for e in today.day["items"] %}<li><span class="yr">{{ e.year }}</span><span>{% if e.url %}<a href="{{ e.url }}" rel="noreferrer">{{ e.text }}</a>{% else %}{{ e.text }}{% endif %}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if not (today.word or today.article or today.day) %}<p class="note">today's word and article haven't loaded. try again in a moment.</p>{% endif %}
+<script src="{{ url_for('static', filename='learn.js') }}"></script>
+{% endblock %}

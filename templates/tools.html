@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}tools - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>tools</span></p>
+<p class="note toolsnote">everything nook can answer by itself, from the search box. click an example to try it. press <b>ctrl+k</b> anywhere to jump around.</p>
+
+{% for group, items in catalog %}
+<section class="toolgroup">
+  <h2>{{ group }}</h2>
+  {% for title, examples in items %}
+  <div class="toolrow"><span class="what">{{ title }}</span><span class="ex">{% for e in examples %}<a href="/search?q={{ e | urlencode }}">{{ e }}</a>{% endfor %}</span></div>
+  {% endfor %}
+</section>
+{% endfor %}
+
+<section class="toolgroup">
+  <h2>narrow a search</h2>
+  <div class="toolrow"><span class="what">lenses</span><span class="ex">{% for name, sites in lens_table.items() %}<a href="/search?q=python&amp;l={{ name }}" title="{{ sites | join(', ') }}">{{ name }}</a>{% endfor %}</span></div>
+  <p class="note">a lens is only a list of sites added to your search. edit them under [lenses] in config.toml.</p>
+</section>
+
+<section class="toolgroup">
+  <h2>jump to a site</h2>
+  <p class="bangs">type <b>!name</b> and your words: <code>!w sourdough</code> or <code>sourdough !yt</code></p>
+  <p class="bangs">{% for b in bangs %}<span>!{{ b }}</span>{% endfor %}</p>
+</section>
+
+<section class="toolgroup">
+  <h2>other pages</h2>
+  <div class="toolrow"><span class="what">places</span><span class="ex"><a href="/maps">maps</a><a href="/news">news</a><a href="/shelf">shelf</a><a href="/code">code</a><a href="/today">today</a><a href="/travel">travel</a><a href="/world">world</a><a href="/learn">learn</a><a href="/watching">watching</a><a href="/status">status</a><a href="/versus">compare engines</a><a href="/surprise">surprise me</a></span></div>
+</section>
+{% endblock %}

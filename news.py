@@ -114,6 +114,18 @@ def parse(xml, source, wing):
     return out
 
 
+def feed_title(xml):
+    """The name a feed gives itself (its channel or feed title), or ''."""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return ""
+    node = root.find("channel/title")
+    if node is None:
+        node = root.find(f"{ATOM}title")
+    return _plain(node.text or "")[:60] if node is not None and node.text else ""
+
+
 def all_cached():
     """Every story we hold right now, whichever wing."""
     return [s for _, stories in list(_cache.values()) for s in stories]

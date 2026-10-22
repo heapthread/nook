@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ q or "compare engines" }} - nook{% endblock %}
+{% block wide %}wide{% endblock %}
+{% block body %}
+<form class="bar" action="/versus" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" placeholder="see what each engine finds" aria-label="search"{% if not q %} autofocus{% endif %}>
+</form>
+<nav class="tabs"><span>compare engines</span>{% if q %}<a href="/search?q={{ q | urlencode }}">the merged list</a>{% endif %}</nav>
+
+{% if not q %}
+<p class="note">asks every engine on its own and puts their answers side by side, so you can see who found what and where they disagree.</p>
+{% else %}
+<p class="note">{{ total }} different pages across the engines; {{ shared }} found by more than one (marked with a dot).</p>
+<div class="versus">
+  {% for col in columns %}
+  <section class="vcol">
+    <h2>{{ col.name }}</h2>
+    {% if not col.ok %}<p class="note">didn't answer.</p>{% endif %}
+    <ol>
+      {% for it in col.rows %}
+      <li><a href="{{ it.url }}" rel="noreferrer">{{ it.title }}</a>{% if it.shared %} <span class="agree" title="found by {{ it.count }} engines">&#9679;</span>{% endif %}<span class="via">{{ it.host }}</span></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% else %}
+  <p class="empty">no engines are switched on.</p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

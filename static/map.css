@@ -1,0 +1,68 @@
+/* maps, in nook's colours: the tiles are warmed up and the paper shows through */
+.nmap {
+  position: relative; overflow: hidden; height: 15rem; margin: .9rem 0 .4rem;
+  background: var(--line); border: 1px solid var(--line); border-radius: 4px;
+  touch-action: none; cursor: grab; outline: none; user-select: none;
+}
+.nmap.big { height: 62vh; min-height: 22rem; }
+.nmap.moving { cursor: grabbing; }
+.nmap:focus-visible { border-color: var(--link); }
+.nmap .tiles { position: absolute; inset: 0; }
+.nmap .tiles img {
+  position: absolute; left: 0; top: 0; width: 256px; height: 256px; max-width: none; transform-origin: 0 0;
+  opacity: 0; transition: opacity .35s;
+  filter: sepia(.5) saturate(.7) hue-rotate(-10deg) contrast(.9) brightness(1.04);
+}
+.nmap .tiles img.in { opacity: 1; }
+/* a wash of the page colour over everything, so the map belongs to the page */
+.nmap::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: var(--bg); mix-blend-mode: multiply; opacity: .45;
+}
+@media (prefers-color-scheme: dark) {
+  .nmap .tiles img { filter: invert(.92) hue-rotate(180deg) sepia(.55) saturate(.6) brightness(.82) contrast(.88); }
+  .nmap::after { mix-blend-mode: soft-light; opacity: .5; }
+}
+
+.nmap canvas.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.nmap .pins { position: absolute; left: 0; top: 0; z-index: 2; }
+.nmap .pin {
+  position: absolute; left: -.45rem; top: -.45rem; width: .9rem; height: .9rem; border-radius: 50%;
+  background: var(--link); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--link); display: block;
+}
+.nmap a.pin:hover { background: var(--text); text-decoration: none; }
+.nmap .pin.on { width: 1.15rem; height: 1.15rem; left: -.575rem; top: -.575rem; }
+
+.nmap .ctl { position: absolute; z-index: 4; top: .5rem; right: .5rem; display: flex; flex-direction: column; gap: .25rem; }
+.nmap .ctl button, .nmap .info {
+  width: 1.7rem; height: 1.7rem; line-height: 1; padding: 0; font-size: 1.05rem; text-align: center;
+  color: var(--soft); background: var(--bg); border: 1px solid var(--line); border-radius: 50%; cursor: pointer;
+}
+.nmap .ctl button:hover, .nmap .info:hover { color: var(--link); border-color: var(--link); text-decoration: none; }
+
+/* the credit fades after a moment; the small i brings it back */
+.nmap .credit {
+  position: absolute; z-index: 4; left: .5rem; bottom: .5rem; display: flex; align-items: center; gap: .4rem;
+}
+.nmap .credit .info { width: 1.35rem; height: 1.35rem; font-size: .75rem; font-style: italic; font-family: inherit; }
+.nmap .credit .text {
+  font-size: .75rem; padding: .1rem .5rem; color: var(--soft); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 3px; opacity: 0; visibility: hidden;
+  transition: opacity .7s, visibility 0s .7s;
+}
+.nmap .credit.show .text { opacity: 1; visibility: visible; transition: opacity .25s; }
+.nmap .credit a { color: var(--soft); text-decoration: underline; }
+.map-credit-static { color: var(--soft); font-size: .75rem; margin: 0 0 .6rem; }
+
+.mapnote { margin: .2rem 0 1rem; font-size: .85rem; color: var(--soft); }
+.mapnote a { color: var(--soft); text-decoration: underline; }
+
+/* the /maps page */
+.places { list-style: none; margin: 0 0 1rem; padding: 0; }
+.places li { margin: 0 0 .5rem; }
+.places a { display: block; color: var(--text); }
+.places a:hover { text-decoration: none; color: var(--link); }
+.places .name { display: block; }
+.places .where { display: block; color: var(--soft); font-size: .85rem; }
+.places li.on a .name { color: var(--link); }
+.places li.on a .name::before { content: "\2022\00a0"; }

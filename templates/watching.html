@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}watching - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>watching</span></p>
+<p class="note shelfnote">searches you chose to keep an eye on. nook shows what is new since you last looked. the list is kept only in this browser; nook remembers nothing about it. press <b>watch</b> on any results page to add one.</p>
+
+<div id="watch-list"></div>
+<p class="note none" hidden>nothing watched yet. search for something, then press &ldquo;watch&rdquo; under the search box.</p>
+<p class="note">every watched search also has a <b>feed</b> link: add it to a feed reader and the reader tells you about new results, without nook keeping anything.</p>
+<script src="{{ url_for('static', filename='watch.js') }}"></script>
+{% endblock %}

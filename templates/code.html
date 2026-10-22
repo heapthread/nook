@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ q or "code" }} - nook{% endblock %}
+{% block body %}
+<form class="bar" action="/code" method="get">
+  <a href="/">nook</a>
+  <input type="search" name="q" value="{{ q }}" placeholder="a library, a function, an error" aria-label="search code"{% if not q %} autofocus{% endif %}>
+</form>
+<nav class="tabs"><span>code</span>{% if q %}<a href="/search?q={{ q | urlencode }}&amp;l=code">web, code sites only</a>{% endif %}</nav>
+
+{% if not q %}
+<p class="note">searches GitHub, npm, MDN, Stack Overflow and PyPI at once. nook asks them for you, so your browser never does.</p>
+<p class="related"><span>or make something</span>
+  {% for t in ("uuid", "random password 24", "sha256 of hello", "base64 encode hi", "#ff8800", "epoch 1700000000", "lorem ipsum 2 paragraphs", "url encode a b") %}<a href="/search?q={{ t | urlencode }}">{{ t }}</a>{{ " " }}{% endfor %}</p>
+{% else %}
+  {% for name, items in sections %}
+  <section class="codegroup">
+    <h2>{{ name }}</h2>
+    {% for it in items %}
+    <article>
+      <h3><a href="{{ it.url }}" rel="noreferrer">{{ it.title }}</a></h3>
+      {% if it.text %}<p>{{ it.text }}</p>{% endif %}
+      {% if it.meta %}<div class="via">{{ it.meta }}</div>{% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <p class="empty">nothing found for &ldquo;{{ q }}&rdquo;.{% if failed %} {{ failed | join(", ") }} didn't answer.{% endif %}</p>
+  {% endfor %}
+  {% if sections and failed %}<p class="note">{{ failed | join(", ") }} didn't answer.</p>{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_map.html" import nmap %}
+{% block title %}world - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>world</span></p>
+<p class="note shelfnote">the earth and the sky right now. earthquakes of magnitude 4.5 and above in the last day, and where the space station is.</p>
+
+{{ nmap(20, 10, 2, markers, big=True) }}
+
+<div class="worldgrid">
+  <section class="today">
+    <h2>space station</h2>
+    {% if station %}
+    <p>over {{ station.lat }}&deg;, {{ station.lon }}&deg;</p>
+    <p class="src">{{ station.alt }} km up &middot; {{ "{:,}".format(station.speed) }} km/h{% if station.visibility %} &middot; {{ station.visibility }}{% endif %}</p>
+    {% else %}<p class="note">not answering just now.</p>{% endif %}
+  </section>
+  <section class="today">
+    <h2>moon</h2>
+    <p>{{ moon.big }}</p>
+    <p class="src">{{ moon.small }}</p>
+  </section>
+</div>
+
+<section class="today">
+  <h2>earthquakes in the last day</h2>
+  {% if quakes %}
+  <ul class="quakelist">{% for q in quakes["items"] %}<li><b>{{ "%.1f" | format(q.mag) }}</b> <span>{% if q.url %}<a href="{{ q.url }}" rel="noreferrer">{{ q.place }}</a>{% else %}{{ q.place }}{% endif %}</span> <span class="soft">{{ q.when }}</span></li>{% endfor %}</ul>
+  <p class="note">{{ quakes.note }}</p>
+  {% else %}<p class="note">no answer from the survey just now.</p>{% endif %}
+</section>
+{% endblock %}

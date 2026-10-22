@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}today - nook{% endblock %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>today</span></p>
+<p class="todaydate" id="today-date">&nbsp;</p>
+
+{% if empty %}
+<p class="note">a quiet page for the day: weather where you want it, a few clocks, the main headlines. nothing shows until you pick what you want below.</p>
+{% endif %}
+
+{% for w in forecasts %}
+<section class="today weather">
+  <div class="now"><span class="deg">{{ w.temp }}</span><span class="what">{{ w.place }}<span class="z">{{ w.text }}{% if w.feels %} &middot; feels like {{ w.feels }}{% endif %}{% if w.days %} &middot; {{ w.days[0].low }} / {{ w.days[0].high }}{% endif %}</span></span></div>
+</section>
+{% endfor %}
+
+{% if clocks %}
+<section class="today clocks">
+  {% for c in clocks %}
+    {% if c.kind == "time" %}<div class="clock"><span class="t">{{ c.clock }}</span><span class="p">{{ c.place }}<span class="z">{{ c.day }} &middot; {{ c.zone }}</span></span></div>{% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if news_on %}
+<section class="today headlines">
+  <h2>headlines</h2>
+  {% for s in stories %}
+  <p><a href="{{ rd(s.url, 'all') }}">{{ s.title }}</a><span class="via"> {{ s.source }}{% if s.when %} &middot; {{ s.when | ago }}{% endif %}</span></p>
+  {% else %}<p class="note">the news feeds haven't answered yet.</p>{% endfor %}
+  <p class="note"><a href="/news">more news</a></p>
+</section>
+{% endif %}
+
+<section class="today" id="today-watch" hidden>
+  <h2>watching</h2>
+  <div class="lines"></div>
+  <p class="note"><a href="/watching">all watched searches</a></p>
+</section>
+<script src="{{ url_for('static', filename='watch.js') }}"></script>
+
+<details class="engines todayedit"{% if empty %} open{% endif %}>
+  <summary>choose what to show</summary>
+  <form action="/today" method="post">
+    <label class="sites">weather in <span class="soft">(one place per line, up to four)</span>
+      <textarea name="weather" rows="3" spellcheck="false" placeholder="bonn">{{ weather_text }}</textarea></label>
+    <label class="sites">clocks for <span class="soft">(one place per line)</span>
+      <textarea name="clocks" rows="3" spellcheck="false" placeholder="tokyo">{{ clock_text }}</textarea></label>
+    <label><input type="checkbox" name="news"{% if news_on %} checked{% endif %}> the main headlines</label>
+    <p class="actions"><button type="submit">save</button> <span class="soft">remembered in this browser</span></p>
+  </form>
+</details>
+<script src="{{ url_for('static', filename='today.js') }}"></script>
+{% endblock %}

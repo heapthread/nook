@@ -12,6 +12,33 @@
     });
   });
 
+  // stopwatch: start, lap, reset (kept in the page, nothing is sent anywhere)
+  var watch = document.querySelector(".stopwatch");
+  if (watch) {
+    var face = watch.querySelector(".big"), laps = watch.querySelector(".laps"), go = watch.querySelector("[data-act=go]");
+    var began = 0, before = 0, ticking = null;
+    var show = function (ms) {
+      var t = Math.floor(ms / 100) / 10, m = Math.floor(t / 60), s = (t - m * 60).toFixed(1);
+      return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+    };
+    var now = function () { return before + (ticking ? Date.now() - began : 0); };
+    go.addEventListener("click", function () {
+      if (ticking) { before = now(); clearInterval(ticking); ticking = null; go.textContent = "start"; return; }
+      began = Date.now();
+      ticking = setInterval(function () { face.textContent = show(now()); }, 50);
+      go.textContent = "stop";
+    });
+    watch.querySelector("[data-act=lap]").addEventListener("click", function () {
+      if (!now()) return;
+      var li = document.createElement("li");
+      li.textContent = show(now());
+      laps.insertBefore(li, laps.firstChild);
+    });
+    watch.querySelector("[data-act=reset]").addEventListener("click", function () {
+      clearInterval(ticking); ticking = null; before = 0; go.textContent = "start"; face.textContent = show(0); laps.textContent = "";
+    });
+  }
+
   // pronunciation: play the clip nook passed through
   var say = document.querySelector(".say");
   if (say) {

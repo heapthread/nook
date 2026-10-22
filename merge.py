@@ -95,10 +95,13 @@ def is_resting(name, now=None):
 
 
 strikes = {}   # engine name -> failed searches in a row
+last_ok = {}   # engine name -> when it last answered (time.monotonic)
+last_bad = {}  # engine name -> when it last failed
 
 
 def _failed(name):
     """Note a failure. The second one in a row sends the engine to rest, for longer each time."""
+    last_bad[name] = time.monotonic()
     strikes[name] = strikes.get(name, 0) + 1
     if strikes[name] >= 2:
         _, length = resting.get(name, (0, 0))
@@ -107,6 +110,7 @@ def _failed(name):
 
 
 def _worked(name):
+    last_ok[name] = time.monotonic()
     strikes.pop(name, None)
     resting.pop(name, None)
 

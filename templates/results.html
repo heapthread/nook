@@ -2,6 +2,7 @@
 {% block title %}{{ q }} - nook{% endblock %}
 {% block wide %}{% if tab == "images" %}wide{% endif %}{% endblock %}
 {% block body %}
+{% set keep = carry ~ (("&l=" ~ lens) if lens else "") %}
 <form class="bar" action="/search" method="get">
   <a href="/">nook</a>
   <input type="search" name="q" value="{{ q }}" aria-label="search">
@@ -9,11 +10,34 @@
 </form>
 <nav class="tabs">
   {% for key in ("web", "images", "videos") %}
-    {% if key == tab %}<span>{{ key }}</span>{% else %}<a href="/search?q={{ q | urlencode }}{% if key != 'web' %}&amp;t={{ key }}{% endif %}">{{ key }}</a>{% endif %}
+    {% if key == tab %}<span>{{ key }}</span>{% else %}<a href="/search?q={{ q | urlencode }}{% if key != 'web' %}&amp;t={{ key }}{% endif %}{{ carry }}">{{ key }}</a>{% endif %}
   {% endfor %}
+  <a href="/news?w=all&amp;q={{ q | urlencode }}">news</a>
+  <a href="/maps?q={{ q | urlencode }}">maps</a>
   {% if tab == "web" %}{% include "_engines.html" %}{% endif %}
 </nav>
 
+{% if tab == "images" %}
+<form class="imgfilters" action="/search" method="get">
+  <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="t" value="images">
+  <label>size <select name="sz" aria-label="size"><option value="">any</option>{% for k in image_options.sizes %}<option value="{{ k }}"{% if image_now.size == k %} selected{% endif %}>{{ k }}</option>{% endfor %}</select></label>
+  <label>type <select name="ty" aria-label="type"><option value="">any</option>{% for k in image_options.kinds %}<option value="{{ k }}"{% if image_now.kind == k %} selected{% endif %}>{{ k }}</option>{% endfor %}</select></label>
+  <label>colour <select name="co" aria-label="colour"><option value="">any</option>{% for k in image_options.colours %}<option value="{{ k }}"{% if image_now.colour == k %} selected{% endif %}>{{ k }}</option>{% endfor %}</select></label>
+  <button type="submit">filter</button>
+</form>
+{% endif %}
+{% if tab == "web" %}
+<p class="lenses"><span>narrow to</span>
+  {% for name in lens_names %}{% if name == lens %}<span class="on">{{ name }}</span>{% else %}<a href="/search?q={{ q | urlencode }}&amp;l={{ name }}{{ carry }}">{{ name }}</a>{% endif %}{% endfor %}
+  {% if lens %}<a href="/search?q={{ q | urlencode }}{{ carry }}">clear</a>{% endif %}
+  <button type="button" class="watch" data-q="{{ q }}" data-lens="{{ lens }}" title="keep an eye on this search: /watching shows what is new">watch</button>
+  <a class="feedlink" href="/search.rss?q={{ q | urlencode }}{% if lens %}&amp;l={{ lens }}{% endif %}{{ carry }}" title="a feed of this search for a feed reader">feed</a>
+  <button type="button" class="share" data-share="{{ share }}" title="copy a link to this search, with your region, engines and filters">share</button>
+</p>
+{% if lens %}<p class="note">only {{ lens_sites | join(", ") }}.</p>{% endif %}
+{% endif %}
+<!--stream--><span class="loaded"></span>
+{% if didyoumean %}<p class="didyoumean">did you mean <a href="/search?q={{ didyoumean | urlencode }}{{ carry }}">{{ didyoumean }}</a>?</p>{% endif %}
 {% if limit_note %}<p class="note">{{ limit_note }}</p>{% endif %}
 {% include "_card.html" %}
 {% if hidden_count %}<p class="note">{{ hidden_count }} result{{ "" if hidden_count == 1 else "s" }} hidden by your site list.</p>{% endif %}
@@ -44,10 +68,11 @@
 {% else %}
 {% for r in results %}
 <article>
+  {% set yt = r.url | ytid %}{% if yt and pics_on %}<img class="thumb" src="{{ px('https://i.ytimg.com/vi/' ~ yt ~ '/mqdefault.jpg') }}" alt="" loading="lazy">{% endif %}
   <h2><a href="{{ r.url }}" rel="noreferrer">{{ r.title }}</a></h2>
-  <div class="url">{% if icons %}<img class="ico" src="{{ px('https://icons.duckduckgo.com/ip3/' ~ (r.url | host) ~ '.ico') }}" alt="" width="16" height="16" loading="lazy">{% endif %}{{ r.url }}</div>
+  <div class="url">{% if icons and pics_on %}<img class="ico" src="{{ px('https://icons.duckduckgo.com/ip3/' ~ (r.url | host) ~ '.ico') }}" alt="" width="16" height="16" loading="lazy">{% endif %}{{ r.url | crumbs }}{% set k = r.url | kind %}{% if k %} <span class="badge">{{ k }}</span>{% endif %}</div>
   {% if r.snippet %}<p>{{ r.snippet | mark(q) }}</p>{% endif %}
-  <div class="via">{{ r.engines | join(" · ") }}{% if r.date %} &middot; {{ r.date }}{% endif %} &middot; <a href="{{ rd(r.url, 'centre', q, r.title) }}">read</a></div>
+  <div class="via">{% if r.engines | length > 1 %}<span class="agree" title="found by {{ r.engines | join(', ') }}">&#9679;</span> {% endif %}{{ r.engines | join(" · ") }}{% if r.date %} &middot; {{ r.date }}{% endif %} &middot; <a href="{{ rd(r.url, 'centre', q, r.title) }}">read</a></div>
 </article>
 {% endfor %}
 {% endif %}
@@ -61,6 +86,7 @@
   <p class="empty">that's everything i could find for this one.</p>
   {% else %}
   <p class="empty">nothing found for &ldquo;{{ q }}&rdquo;. try fewer words, or look under <a href="/search?q={{ q | urlencode }}&amp;t={{ 'images' if tab != 'images' else 'web' }}">{{ 'images' if tab != 'images' else 'web' }}</a>.</p>
+  <p class="note">or ask somewhere else: {% for bang, name in (("ddg", "duckduckgo"), ("bing", "bing"), ("brave", "brave"), ("sp", "startpage"), ("mojeek", "mojeek")) %}<a href="/search?q={{ ('!' ~ bang ~ ' ' ~ q) | urlencode }}">{{ name }}</a>{{ " " }}{% endfor %}</p>
   {% endif %}
 {% endif %}
 
@@ -70,13 +96,13 @@
 
 {% if page > 1 or more %}
 <p class="pager">
-  {% if page > 1 %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}{% if page > 2 %}&amp;page={{ page - 1 }}{% endif %}">back</a>{% endif %}
-  {% if more %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}&amp;page={{ page + 1 }}">more</a>{% endif %}
+  {% if page > 1 %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}{% if page > 2 %}&amp;page={{ page - 1 }}{% endif %}{{ keep }}">back</a>{% endif %}
+  {% if more %}<a href="/search?q={{ q | urlencode }}{% if tab != 'web' %}&amp;t={{ tab }}{% endif %}&amp;page={{ page + 1 }}{{ keep }}">more</a>{% endif %}
 </p>
 {% endif %}
 
 {% if answered or failed %}
-<p class="note">{% if answered %}answered by {{ answered | join(", ") }}.{% endif %}{% if failed %} {{ failed | join(", ") }} didn't answer.{% endif %}</p>
+<p class="note">{% if answered %}answered by {{ answered | join(", ") }}.{% endif %}{% if failed %} {{ failed | join(", ") }} didn't answer{% if failed | length > 1 %} (<a href="/status">what's going on?</a>){% endif %}.{% endif %}{% if took is not none %}<span class="soft took"> &middot; {{ took }} s</span>{% endif %}{% if tab == "web" and results %} <a href="/versus?q={{ q | urlencode }}">compare what each engine found</a>.{% endif %}</p>
 {% endif %}
 
 {% if tab == "images" and results %}
@@ -87,4 +113,5 @@
 </div>
 <script src="{{ url_for('static', filename='images.js') }}"></script>
 {% endif %}
+{% if tab == "web" %}<script src="{{ url_for('static', filename='watch.js') }}"></script>{% endif %}
 {% endblock %}

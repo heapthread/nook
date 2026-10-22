@@ -12,7 +12,7 @@
   <div class="via">{{ story.source }}{% if story.when %} &middot; {{ story.when | ago }}{% endif %}</div>
   <p class="actions"><a class="btn" href="{{ story.url }}" rel="noreferrer">read at {{ story.source }}</a></p>
   {% if how != "partial" %}
-  <p class="tools">{{ minutes }} min read &middot; text <button type="button" data-act="smaller" aria-label="smaller text">smaller</button> <button type="button" data-act="bigger" aria-label="bigger text">bigger</button> &middot; <button type="button" data-act="wide">wider</button> &middot; <button type="button" data-act="listen" hidden>listen</button></p>
+  <p class="tools">{{ minutes }} min read &middot; text <button type="button" data-act="smaller" aria-label="smaller text">smaller</button> <button type="button" data-act="bigger" aria-label="bigger text">bigger</button> &middot; <button type="button" data-act="wide">wider</button> &middot; <button type="button" data-act="keep" title="save the text in this browser, so you keep it even if the page changes or goes behind a paywall">keep a copy</button> &middot; <button type="button" data-act="listen" hidden>listen</button></p>
   {% endif %}
 
   {% if pics and story.image %}<img class="lead" src="{{ px(story.image) }}" alt="">{% endif %}
@@ -22,6 +22,7 @@
     <p class="note">nook couldn't get the full article from {{ host }}. it may be behind a paywall, or it may block readers like this one. the button above takes you to it.</p>
   {% else %}
     {% for p in paras %}<p>{{ p }}</p>{% endfor %}
+    <script type="application/json" id="kept-data">{{ {"title": story.title, "url": story.url, "source": story.source, "paras": paras} | tojson }}</script>
     {% if how == "feed" %}<p class="note">this is the text {{ story.source }} put in its feed, so it may be shortened.</p>{% endif %}
     <p class="actions"><a class="btn" href="{{ story.url }}" rel="noreferrer">read at {{ story.source }}</a></p>
   {% endif %}

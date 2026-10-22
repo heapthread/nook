@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}status - nook{% endblock %}
+{% macro ago(seconds) %}{% if seconds is none %}never{% elif seconds < 90 %}just now{% elif seconds < 3600 %}{{ seconds // 60 }} min ago{% elif seconds < 86400 %}{{ seconds // 3600 }} h ago{% else %}{{ seconds // 86400 }} d ago{% endif %}{% endmacro %}
+{% block body %}
+<p class="bar news-bar"><a href="/">nook</a> <span>status</span></p>
+<p class="note shelfnote">which engines and feeds are working right now. engines get turned away now and then; nook rests one that fails twice in a row.</p>
+
+<section class="toolgroup">
+  <h2>engines</h2>
+  {% for e in engine_rows %}
+  <div class="toolrow"><span class="what">{{ e.name }}</span>
+    <span class="ex">{% if e.resting %}<span>resting for {{ e.resting }} s</span>{% elif e.ok is none and e.bad is none %}<span class="soft">not asked yet</span>{% elif e.bad is not none and (e.ok is none or e.bad < e.ok) %}<span>last try failed {{ ago(e.bad) }}</span>{% else %}<span>answered {{ ago(e.ok) }}</span>{% endif %}</span></div>
+  {% endfor %}
+</section>
+
+<section class="toolgroup">
+  <h2>a live check</h2>
+  {% if checked %}
+    {% for name, problem in checked[1] %}<div class="toolrow"><span class="what">{{ name }}</span><span class="ex">{% if problem %}<span>{{ problem }}</span>{% else %}<span>works</span>{% endif %}</span></div>{% endfor %}
+    <p class="note">checked {{ ago(checked_ago) }}.</p>
+  {% endif %}
+  <form action="/status" method="post"><p class="actions"><button type="submit"{% if cooling %} disabled{% endif %}>check every engine now</button> <span class="soft">one real search each; once a minute at most</span></p></form>
+</section>
+
+<section class="toolgroup">
+  <h2>news feeds</h2>
+  {% for f in feed_rows %}
+  <div class="toolrow"><span class="what">{{ f.name }}</span><span class="ex"><span>{{ f.wing | replace("-", " ") }}</span><span class="soft">{% if f.age is none %}not fetched yet{% else %}{{ f.count }} stories, fetched {{ ago(f.age) }}{% endif %}</span></span></div>
+  {% endfor %}
+</section>
+{% endblock %}

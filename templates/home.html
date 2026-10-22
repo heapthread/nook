@@ -6,11 +6,12 @@
   </button>
 
   <h1>nook</h1>
-  <div class="sub"><a href="/news">news</a> {% include "_engines.html" %}</div>
+  <div class="sub"><a href="/news">news</a> <a href="/maps">maps</a> {% include "_engines.html" %}</div>
   <form action="/search" method="get">
     <input type="search" name="q" autofocus autocomplete="off" aria-label="search">
   </form>
 
+  <p class="daily" hidden></p>
   <div class="recent" hidden><p class="label">recent</p><p class="items"></p></div>
   <div class="saved" hidden><p class="label">saved</p><ul class="items"></ul></div>
 
@@ -27,6 +28,7 @@
     <label class="check"><input type="checkbox" name="recent"> remember my recent searches</label>
     <label class="check"><input type="checkbox" name="showSaved"> show the things I saved</label>
     <label class="check"><input type="checkbox" name="notes"> show a notes box</label>
+    <label class="check"><input type="checkbox" name="daily"> show a word of the day</label>
     <label>your name <span class="soft">(optional)</span><input type="text" name="name" autocomplete="off"></label>
     <label>bookmarks <span class="soft">(one per line: a name, then the address)</span>
       <textarea name="marks" rows="5" spellcheck="false" placeholder="mail https://mail.example.com&#10;notes https://notes.example.com"></textarea>

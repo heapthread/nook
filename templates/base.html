@@ -8,15 +8,22 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='media.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}">
 <link rel="search" type="application/opensearchdescription+xml" title="nook" href="/opensearch.xml">
 </head>
-<body>
-<main class="{% block wide %}{% endblock %}">
+<body data-suggest="{{ 1 if suggest_on else 0 }}" data-newtab="{{ 1 if newtab_on else 0 }}">
+<a class="skip" href="#main">skip to the page</a>
+<main id="main" class="{% block wide %}{% endblock %}">
 {% block body %}{% endblock %}
 </main>
 <footer>
-  <a href="/about">about</a> &middot; <a href="/news">news</a> &middot; nothing is logged &middot; <span class="soft">press ? for shortcuts</span>
+  <a href="/about">about</a> &middot; <a href="/news">news</a> &middot; <a href="/tools">tools</a><br>
+  <span class="soft">nothing is logged &middot; press ? for shortcuts</span>
 </footer>
 <script src="{{ url_for('static', filename='nook.js') }}"></script>
+<script src="{{ url_for('static', filename='extras.js') }}"></script>
+<script src="{{ url_for('static', filename='suggest.js') }}"></script>
+<script src="{{ url_for('static', filename='palette.js') }}"></script>
+<script src="{{ url_for('static', filename='menu.js') }}"></script>
 </body>
 </html>

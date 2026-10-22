@@ -135,9 +135,45 @@ def moon(now=None):
 
 # --- the questions ---------------------------------------------------------------
 
+def month_card(q, today):
+    """`calendar`, `calendar october 2026`, `march 2027 calendar`, `calendar next month`."""
+    import calendar as cal
+    names = [m.lower() for m in cal.month_name if m]
+    year, month = today.year, today.month
+    m = re.fullmatch(r"(?:calendar|cal)(?: (?:for )?(this month|next month|last month|previous month))?", q)
+    if m:
+        step = {"next month": 1, "last month": -1, "previous month": -1}.get(m.group(1) or "", 0)
+    else:
+        m = re.fullmatch(rf"(?:calendar|cal)(?: for| of)? ({'|'.join(names)}|{'|'.join(n[:3] for n in names)})(?: (\d{{4}}))?", q) or \
+            re.fullmatch(rf"({'|'.join(names)}|{'|'.join(n[:3] for n in names)})(?: (\d{{4}}))? calendar", q)
+        if not m:
+            m2 = re.fullmatch(r"(?:calendar|cal)(?: for| of)? (\d{4}) ([a-z]+)", q)
+            if not m2 or m2.group(2) not in names:
+                return None
+            year, month, step = int(m2.group(1)), names.index(m2.group(2)) + 1, 0
+        else:
+            name = m.group(1)
+            month = next(i for i, n in enumerate(names, 1) if n == name or n[:3] == name)
+            year = int(m.group(2)) if m.group(2) else today.year
+            step = 0
+    month += step
+    year += (month - 1) // 12
+    month = (month - 1) % 12 + 1
+    if not 1 <= year <= 9999:
+        return None
+    weeks = cal.Calendar(firstweekday=0).monthdayscalendar(year, month)
+    rows = [{"week": date(year, month, next(d for d in w if d)).isocalendar()[1], "days": w} for w in weeks]
+    return {"kind": "calendar", "title": f"{names[month - 1]} {year}", "rows": rows,
+            "today": today.day if (today.year, today.month) == (year, month) else None,
+            "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}
+
+
 def answer(query, today=None, now=None):
     today = today or date.today()
     q = _clean(query)
+    shown = month_card(q, today)
+    if shown:
+        return shown
     if re.fullmatch(r"(?:the )?(?:moon(?: phase)?|phase of the moon|moon tonight|current moon phase|what phase is the moon)", q):
         return moon(now)
     if re.fullmatch(r"(?:what(?:s| is)?(?: the)? )?(?:todays? date|date today|date|today|what day is it(?: today)?|current date)", q):

@@ -1,6 +1,6 @@
 (function () {
   var KEY = "nook.home", RECENT = "nook.recent", SAVED = "nook.saved", NOTES = "nook.notes";
-  var COOKIES = ["nook_engines", "nook_region", "nook_safe", "nook_period", "nook_hide", "nook_prefer", "nook_news"];
+  var COOKIES = ["nook_engines", "nook_region", "nook_safe", "nook_period", "nook_hide", "nook_prefer", "nook_news", "nook_pics", "nook_suggest", "nook_myfeeds", "nook_today", "nook_tab"];
   var pencil = document.querySelector(".pencil");
   var box = document.querySelector(".personal");
   var editor = document.querySelector(".editor");
@@ -23,7 +23,7 @@
     var d = read(KEY, {});
     return {
       on: !!d.on, name: d.name || "", marks: d.marks || "", recent: !!d.recent,
-      showSaved: d.showSaved !== false, notes: !!d.notes
+      showSaved: d.showSaved !== false, notes: !!d.notes, daily: !!d.daily
     };
   }
 
@@ -119,6 +119,25 @@
     renderRecent(data);
     renderSaved(data);
     renderNotes(data);
+    renderDaily(data);
+  }
+
+  // today's word (Wiktionary, through nook), only when it was switched on
+  var dailyBox = document.querySelector(".daily");
+  function renderDaily(data) {
+    if (!dailyBox) return;
+    dailyBox.hidden = true;
+    if (!data.daily) return;
+    fetch("/daily.json").then(function (r) { return r.ok ? r.json() : {}; }).then(function (w) {
+      if (!w || !w.word) return;
+      dailyBox.textContent = "";
+      var a = document.createElement("a");
+      a.textContent = w.word;
+      a.href = "/search?q=" + encodeURIComponent("define " + w.word);
+      dailyBox.appendChild(a);
+      if (w.definition) dailyBox.appendChild(document.createTextNode(" — " + w.definition));
+      dailyBox.hidden = false;
+    }).catch(function () {});
   }
 
   // a small notes box, saved as you type
@@ -144,6 +163,7 @@
     editor.elements.recent.checked = data.recent;
     editor.elements.showSaved.checked = data.showSaved;
     editor.elements.notes.checked = data.notes;
+    editor.elements.daily.checked = data.daily;
     editor.elements.name.value = data.name;
     editor.elements.marks.value = data.marks;
   }
@@ -161,7 +181,7 @@
     data = {
       on: editor.elements.on.checked, name: editor.elements.name.value, marks: editor.elements.marks.value,
       recent: editor.elements.recent.checked, showSaved: editor.elements.showSaved.checked,
-      notes: editor.elements.notes.checked
+      notes: editor.elements.notes.checked, daily: editor.elements.daily.checked
     };
     write(KEY, data);
     render(data);
@@ -234,7 +254,7 @@
       var jar = back.cookies && typeof back.cookies === "object" ? back.cookies : {};
       COOKIES.forEach(function (c) {
         var v = jar[c];
-        if (typeof v === "string" && /^[A-Za-z0-9.|_%\-]{1,3000}$/.test(v)) {
+        if (typeof v === "string" && /^[A-Za-z0-9.|_%~:\/?&=+@\-]{1,3500}$/.test(v)) {
           document.cookie = c + "=" + v + "; max-age=31536000; path=/; samesite=lax";
           count++;
         }

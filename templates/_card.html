@@ -1,3 +1,4 @@
+{% from "_map.html" import nmap %}
 {% if card %}
 {% if card.kind == "define" %}
 <section class="card define">
@@ -31,6 +32,119 @@
     <p>{{ card.text }}</p>
     <p class="src">{{ card.source.name }}{% if card.source.url %} &middot; <a href="{{ card.source.url }}" rel="noreferrer">read more</a>{% endif %}</p>
   </div>
+</section>
+
+{% elif card.kind == "wiki" %}
+<section class="card wiki">
+  <div class="head">
+    {% if pics_on and card.image %}<img class="pic" src="{{ px(card.image) }}" alt="" loading="lazy">{% endif %}
+    <div class="body">
+      <h2>{% if pics_on and card.flag %}<img class="flag" src="{{ px(card.flag) }}" alt="" loading="lazy">{% endif %}{{ card.title }}</h2>
+      {% if card.about %}<p class="about">{{ card.about }}</p>{% endif %}
+      {% if card.life %}<div class="life"><span>{{ card.life.from }}</span><i></i><span>{{ card.life.to if card.life.died else "now" }}</span></div>
+      <p class="src lifenote">born {{ card.life.born }}{% if card.life.died %} &middot; died {{ card.life.died }} &middot; aged {{ card.life.age }}{% else %} &middot; age {{ card.life.age }}{% endif %}</p>{% endif %}
+      <p>{{ card.text }}</p>
+      {% if card.simple %}<details class="simple"><summary>in simple words</summary>
+        <p>{{ card.simple.text }}</p>
+        <p class="src"><a href="{{ card.simple.url }}" rel="noreferrer">{{ card.simple.title }}</a> &middot; Simple English Wikipedia</p>
+      </details>{% endif %}
+    </div>
+  </div>
+  {% if pics_on and card.pictures %}<div class="shots">{% for p in card.pictures %}<a href="{{ p.page }}" rel="noreferrer" title="{{ p.caption }}"><img src="{{ px(p.src) }}" alt="{{ p.caption }}" loading="lazy"></a>{% endfor %}</div>{% endif %}
+  {% if card.map %}
+    {% set to_map = "/maps?lat=%s&lon=%s&z=%s&name=%s" | format(card.map.lat, card.map.lon, card.map.zoom, card.title | urlencode) %}
+    {% if pics_on %}{{ nmap(card.map.lat, card.map.lon, card.map.zoom, [{"lat": card.map.lat, "lon": card.map.lon, "label": card.title}]) }}
+    <p class="mapnote"><a href="{{ to_map }}">bigger map</a></p>
+    {% else %}<p class="src"><a href="{{ to_map }}">see it on a map</a></p>{% endif %}
+  {% endif %}
+  <p class="src">{{ card.source }} &middot; <a href="{{ card.url }}" rel="noreferrer">read more</a></p>
+</section>
+
+{% elif card.kind == "plot" %}
+<section class="card plot">
+  <svg viewBox="0 0 {{ card.w }} {{ card.h }}" role="img" aria-label="graph of {{ card.series | map(attribute='label') | join(', ') }}">
+    <clipPath id="plotclip"><rect x="{{ card.box.x }}" y="{{ card.box.y }}" width="{{ card.box.w }}" height="{{ card.box.h }}"/></clipPath>
+    <rect class="frame" x="{{ card.box.x }}" y="{{ card.box.y }}" width="{{ card.box.w }}" height="{{ card.box.h }}"/>
+    {% for t in card.xticks %}<line class="grid" x1="{{ t.at }}" x2="{{ t.at }}" y1="{{ card.box.y }}" y2="{{ card.box.y + card.box.h }}"/><text class="tick" x="{{ t.at }}" y="{{ card.h - 8 }}" text-anchor="middle">{{ t.text }}</text>{% endfor %}
+    {% for t in card.yticks %}<line class="grid" x1="{{ card.box.x }}" x2="{{ card.box.x + card.box.w }}" y1="{{ t.at }}" y2="{{ t.at }}"/><text class="tick" x="{{ card.box.x - 6 }}" y="{{ t.at + 4 }}" text-anchor="end">{{ t.text }}</text>{% endfor %}
+    {% if card.axis_x is not none %}<line class="axis" x1="{{ card.box.x }}" x2="{{ card.box.x + card.box.w }}" y1="{{ card.axis_x }}" y2="{{ card.axis_x }}"/>{% endif %}
+    {% if card.axis_y is not none %}<line class="axis" x1="{{ card.axis_y }}" x2="{{ card.axis_y }}" y1="{{ card.box.y }}" y2="{{ card.box.y + card.box.h }}"/>{% endif %}
+    {% for s in card.series %}<path class="curve c{{ loop.index0 }}" d="{{ s.d }}" clip-path="url(#plotclip)"/>{% endfor %}
+  </svg>
+  <p class="src">{% for s in card.series %}<span class="key c{{ loop.index0 }}">y = {{ s.label }}</span> {% endfor %}&middot; {{ card.note }}</p>
+</section>
+
+{% elif card.kind == "translate" %}
+<section class="card translate">
+  <p class="src">{{ card.from or "detected language" }} &rarr; {{ card.to }}</p>
+  <div class="big" id="tr-result">{{ card.result }}</div>
+  <p class="src">&ldquo;{{ card.original }}&rdquo; &middot; <button type="button" data-copy="tr-result">copy</button> &middot; translated by MyMemory</p>
+</section>
+
+{% elif card.kind == "facts" %}
+<section class="card facts">
+  <h2>{% if pics_on and card.flag %}<img class="flag" src="{{ px(card.flag) }}" alt="">{% endif %}{{ card.title }}</h2>
+  {% if card.big %}<p class="src">{{ card.big[0] }}</p><div class="big">{{ card.big[1] }}</div>{% endif %}
+  <dl class="rows">{% for k, v in card.rows %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl>
+  <p class="src">{{ card.source }} &middot; <a href="{{ card.url }}" rel="noreferrer">Wikipedia</a></p>
+</section>
+
+{% elif card.kind == "stock" %}
+<section class="card stock">
+  <p class="src">{{ card.name }} &middot; {{ card.symbol }}</p>
+  <div class="big">{{ card.price }} <span class="cur">{{ card.currency }}</span></div>
+  <p class="move {{ 'up' if card.up else 'down' }}">{{ card.change }}</p>
+  <svg class="spark" viewBox="0 0 300 56" preserveAspectRatio="none" role="img" aria-label="price over three months"><path d="{{ card.spark }}"/></svg>
+  <p class="src">{{ card.note }}</p>
+</section>
+
+{% elif card.kind == "route" %}
+<section class="card route">
+  <p class="src">{{ card.from }} &rarr; {{ card.to }} &middot; {{ card.how }}</p>
+  <div class="big">{{ "%g" | format(card.km) }} km</div>
+  <p class="src">{% if card.time %}about {{ card.time }} &middot; {% endif %}{{ "%g" | format(card.mi) }} mi{% if not card.straight %} &middot; {{ "%g" | format(card.crow) }} km in a straight line{% endif %} &middot; <a href="/travel?from={{ card.from | urlencode }}&amp;to={{ card.to | urlencode }}">plan the trip</a></p>
+  {% if pics_on %}{{ nmap(card.lat, card.lon, card.zoom, card.markers, lines=[{"points": card.line, "dashed": card.straight}]) }}{% endif %}
+  <p class="src">routes: OpenStreetMap{% if card.straight %} (no road between them, so this is a straight line){% endif %}</p>
+</section>
+
+{% elif card.kind == "quakes" %}
+<section class="card quakes">
+  <h2>{{ card.title }}</h2>
+  <ul class="quakelist">{% for q in card["items"] %}<li><b>{{ "%.1f" | format(q.mag) }}</b> <span>{% if q.url %}<a href="{{ q.url }}" rel="noreferrer">{{ q.place }}</a>{% else %}{{ q.place }}{% endif %}</span> <span class="soft">{{ q.when }}</span></li>{% endfor %}</ul>
+  {% if pics_on %}{{ nmap(20, 10, 1, card.markers) }}{% endif %}
+  <p class="src">{{ card.note }}</p>
+</section>
+
+{% elif card.kind == "iss" %}
+<section class="card iss">
+  <div class="big">over {{ card.lat }}&deg;, {{ card.lon }}&deg;</div>
+  <p class="src">the international space station &middot; {{ card.alt }} km up &middot; {{ "{:,}".format(card.speed) }} km/h{% if card.visibility %} &middot; {{ card.visibility }}{% endif %} &middot; <a href="{{ request.full_path.rstrip('?') }}">again</a></p>
+  {% if pics_on %}{{ nmap(card.lat, card.lon, 3, [{"lat": card.lat, "lon": card.lon, "label": "the space station", "on": True}]) }}{% endif %}
+  <p class="src">position: wheretheiss.at</p>
+</section>
+
+{% elif card.kind == "history" %}
+<section class="card history">
+  <h2>{{ card.title }}, through the years</h2>
+  <ul class="timeline">{% for e in card["items"] %}<li><span class="yr">{{ e.year }}</span><span>{% if e.url %}<a href="{{ e.url }}" rel="noreferrer">{{ e.text }}</a>{% else %}{{ e.text }}{% endif %}</span></li>{% endfor %}</ul>
+  <p class="src">from Wikipedia's &ldquo;on this day&rdquo;</p>
+</section>
+
+{% elif card.kind == "calendar" %}
+<section class="card calendar">
+  <h2>{{ card.title }}</h2>
+  <table>
+    <thead><tr><th class="wk"></th>{% for d in card.days %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in card.rows %}<tr><td class="wk">{{ row.week }}</td>{% for d in row.days %}<td{% if d and d == card.today %} class="today"{% endif %}>{{ d or "" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+  <p class="src">weeks start on monday &middot; week numbers on the left</p>
+</section>
+
+{% elif card.kind == "stopwatch" %}
+<section class="card small stopwatch">
+  <div class="big">00:00.0</div>
+  <p class="src"><button type="button" data-act="go">start</button> <button type="button" data-act="lap">lap</button> <button type="button" data-act="reset">reset</button></p>
+  <ol class="laps"></ol>
 </section>
 
 {% elif card.kind == "currency" %}

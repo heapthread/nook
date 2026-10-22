@@ -18,6 +18,18 @@
       <option value="">any time</option>
       {% for key, label in periods.items() %}<option value="{{ key }}"{% if key == period_now %} selected{% endif %}>{{ label }}</option>{% endfor %}
     </select></label>
+    <label class="period">pictures <select name="pics" aria-label="pictures">
+      <option value="">show them</option>
+      <option value="off"{% if not pics_on %} selected{% endif %}>text only</option>
+    </select></label>
+    <label class="period">open results <select name="newtab" aria-label="open results">
+      <option value="">in this tab</option>
+      <option value="new"{% if newtab_on %} selected{% endif %}>in a new tab</option>
+    </select></label>
+    <label class="period">suggestions <select name="suggest" aria-label="suggestions while typing">
+      <option value="">while i type</option>
+      <option value="off"{% if not suggest_on %} selected{% endif %}>off</option>
+    </select></label>
     <label class="sites">hide these sites <span class="soft">(one per line)</span>
       <textarea name="hide" rows="3" spellcheck="false" placeholder="pinterest.com">{{ hide_now }}</textarea></label>
     <label class="sites">show these first
